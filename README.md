@@ -1,5 +1,12 @@
 # SOEN-341-Events-Web-App
-A platform for students to discover, organize, and attend campus events. Features include event browsing with filters, ticket claiming (free or paid), QR code check-in, organizer dashboards with analytics, and admin moderation tools. Built to streamline event management and enhance student engagement on campus. 
+A platform for students to discover, organize, and attend campus events. Its built to streamline event management with the purpose of enhancing student engagement on campus. 
+
+## Core Features 
+- Event discovery: Browse and filter events by category, date, or popularity.
+- Ticket Management: Simple ticket claiming for both free and paid events.
+- QR code Check-in: Efficient QR code system for event organizers to manage attendees.
+- Organizer Dashboard: View event analytics, manage listings, and track attendance.
+- Admin Tools: Moderation tools to ensure event quality and safety.
 
 ## Team Members
 - Yan Znaty - 40284722 - GitHub Username: yznaty
