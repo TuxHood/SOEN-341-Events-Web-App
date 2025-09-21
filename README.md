@@ -1,5 +1,5 @@
 # SOEN-341-Events-Web-App
-A platform for students to discover, organize, and attend campus events. Features include event browsing with filters, ticket claiming (free or paid), QR code check-in, organizer dashboards with analytics, and admin moderation tools. Built to streamline event management and enhance student engagement.
+A platform for students to discover, organize, and attend campus events. Features include event browsing with filters, ticket claiming (free or paid), QR code check-in, organizer dashboards with analytics, and admin moderation tools. Built to streamline event management and enhance student engagement on campus. 
 
 ## Team Members
 - Yan Znaty - 40284722 - GitHub Username: yznaty
@@ -8,8 +8,9 @@ A platform for students to discover, organize, and attend campus events. Feature
 - Ayaan Vashistha - 40269814 - GitHub Username: ayaanvashistha17
 - Joseph Daoud - 40210485 - GitHub Username: dahood434
 - Aris Moldovan - 40290947 - GitHub Username: TuxHood
-- Ryan Malaeb - 40238884 - GitHub Username: RyanMalaeb
+- Ryan Malaeb - 40238894 - GitHub Username: RyanMalaeb
 
 ## Languages & Techniques
 - Frontend: React.js
-- Backend: Python with Django(TBD)
+- Backend: Python with Django
+- Database: PostgreSQL
