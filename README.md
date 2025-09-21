@@ -1,5 +1,5 @@
 # SOEN-341-Events-Web-App
-A platform for students to discover, organize, and attend campus events. Its built to streamline event management with the purpose of enhancing student engagement on campus. 
+A platform for students to discover, organize, and attend campus events. It's built to streamline event management with the purpose of enhancing student engagement on campus. 
 
 ## Core Features 
 - Event discovery: Browse and filter events by category, date, or popularity.
