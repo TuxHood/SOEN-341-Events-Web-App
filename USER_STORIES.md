@@ -37,7 +37,7 @@ As an administrator, I want to oversee the platform so that events comply with p
 
 ### Sub-Features
 
-- **US3.1:** Approve of orgaizer accounts
+- **US3.1:** Approve of organizer accounts
 - **US3.2:** Moderate event listings to ensure compliance with the rules
-- **US3.3:** View global anyltics (nuber of events, total attendance, total number of tickets issued)
+- **US3.3:** View global anyltics (number of events, total attendance, total number of tickets issued)
 - **US3.4:** Manage organizations and assign roles
