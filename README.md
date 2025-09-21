@@ -10,6 +10,6 @@ A platform for students to discover, organize, and attend campus events. Feature
 - Aris Moldovan - 40290947 - GitHub Username: TuxHood
 - Ryan Malaeb - 40238884 - GitHub Username: RyanMalaeb
 
-# Languages & Techniques
+## Languages & Techniques
 - Frontend: React.js
 - Backend: Python with Django(TBD)
