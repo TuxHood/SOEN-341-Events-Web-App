@@ -12,4 +12,4 @@ A platform for students to discover, organize, and attend campus events. Feature
 
 ## Languages & Techniques
 - Frontend: React.js
-- Backend: Python with Django(TBD)
+- Backend: Python with Django(TBD) 
