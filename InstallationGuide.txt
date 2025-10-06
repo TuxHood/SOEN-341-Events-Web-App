@@ -373,6 +373,85 @@ npm i -D eslint eslint-plugin-react eslint-plugin-react-hooks @eslint/js eslint-
 
 ---
 
+
+---
+
+## Troubleshooting (Windows / PowerShell)
+
+These are direct fixes and PowerShell-specific tips for issues encountered while following this guide on Windows.
+
+- Problem: virtualenv points to a missing Python executable (common when a venv was created with a different interpreter or on another machine)
+  - Symptom: activation or running the venv's python fails with an error like "No Python at 'C:\...\Python312\python.exe'" or `pyvenv.cfg` contains a `home = ...` pointing to a non-existent path.
+  - Fix: recreate the venv with your current system Python (safe and quick). From the `backend` folder run:
+
+```powershell
+# remove and recreate the virtual environment
+Set-Location -Path 'C:\path\to\your\project\backend'
+Remove-Item -Recurse -Force .\.venv
+python -m venv .venv
+
+# update pip and install backend deps into the new venv
+& '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
+& '.\.venv\Scripts\pip.exe' install django djangorestframework psycopg2-binary python-dotenv django-cors-headers
+```
+
+- PowerShell activation notes
+  - If Activate.ps1 is blocked, allow it for the session:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+. .\.venv\Scripts\Activate.ps1
+```
+
+- Running Django commands from PowerShell
+  - When calling the venv python by path, use the call operator `&` so PowerShell parses the command correctly:
+
+```powershell
+Set-Location -Path 'C:\path\to\your\project\backend\collegeEventsWeb'
+& 'C:\path\to\your\project\backend\.venv\Scripts\python.exe' manage.py makemigrations
+& 'C:\path\to\your\project\backend\.venv\Scripts\python.exe' manage.py migrate --noinput
+```
+
+  - To start the dev server in the background from PowerShell (detached), use Start-Process:
+
+```powershell
+Start-Process -NoNewWindow -FilePath 'C:\path\to\your\project\backend\.venv\Scripts\python.exe' -ArgumentList 'manage.py','runserver','0.0.0.0:8000'
+```
+
+- PowerShell operator differences
+  - PowerShell does not support shell operators like `||` and `&&` in the same way as bash. Use separate commands or PowerShell conditional statements instead.
+
+- npm / Start-Process quirks on Windows
+  - If `Start-Process -FilePath 'npm' -ArgumentList 'run','dev'` fails with "%1 is not a valid Win32 application", run npm via `cmd` or run `npm run dev` directly in an interactive terminal:
+
+```powershell
+# start Vite in a new cmd process (detached)
+cmd /c "cd /d C:\path\to\your\project\frontend && npm run dev"
+
+# or just run in the active PowerShell terminal (recommended while developing)
+Set-Location -Path 'C:\path\to\your\project\frontend'
+npm run dev
+```
+
+- Quick checks
+  - Check your system Python version:
+
+```powershell
+py -3 --version
+python --version
+```
+
+  - Inspect the venv config if something looks off:
+
+```powershell
+Get-Content .\.venv\pyvenv.cfg
+```
+
+If `pyvenv.cfg` shows a `home =` path that doesn't exist on your machine, recreate the venv as shown above.
+
+---
+
+If you'd like, I can append these PowerShell-ready commands into a tiny `scripts/` folder (two PowerShell scripts: `start-backend.ps1` and `start-frontend.ps1`) or add a `.vscode/launch.json` compound configuration so you can start both servers from the Run panel. Tell me which you prefer and I'll add it.
 # 7) (Optional) Docker Compose (one command dev)
 
 Create `docker-compose.yml` in the root if you want containers later. If you want this, say the word and I’ll drop a ready-to-run compose with services for **postgres**, **backend (gunicorn)**, and **frontend (nginx)** plus dev overrides.
