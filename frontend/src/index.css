@@ -1,0 +1,136 @@
+/* Adapted globals from your screenshot project (converted to plain CSS so Tailwind isn't required).
+   This exposes the same theme variables and base styles used in your provided globals.css.
+*/
+
+/* Theme variables (light defaults) */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+/* Dark theme overrides: toggle by adding .dark to <html> or <body> */
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+/* Basic base rules to mimic Tailwind's base layer where useful */
+* { box-sizing: border-box; }
+html,body,#root { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* use the page (body) as the single scroll container so there's no inner scrollbar */
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+}
+
+/* small utility classes used in the project markup, translated from Tailwind intent */
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+.text-balance { font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 800; line-height: 1.02; }
+.text-pretty { font-size: 1.125rem; }
+.text-muted-foreground { color: var(--muted-foreground); }
+.bg-muted-50 { background-color: rgba(249,249,250,0.6); }
+.bg-primary { background: var(--primary); }
+.text-primary-foreground { color: var(--primary-foreground); }
+
+/* Buttons used in Home.jsx */
+.btn { display:inline-flex; align-items:center; justify-content:center; border-radius:8px; padding:0.6rem 1rem; font-weight:600; cursor:pointer; text-decoration:none; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.btn-outline { background: transparent; border:1px solid var(--border); color:var(--foreground); }
+
+.btn-md { padding:0.6rem 1rem; font-size:1rem }
+.btn-lg { padding:0.9rem 1.2rem; font-size:1.05rem }
+.btn-sm { padding:0.4rem 0.8rem; font-size:0.9rem }
+
+.cta-row { display:flex; gap:1rem; align-items:center; justify-content:center }
+
+
+/* Small chip for feature icons */
+.icon-chip { width:48px; height:48px; display:flex; align-items:center; justify-content:center; border-radius:8px; }
+
+/* Hero and layout helpers */
+.hero { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6rem 1.5rem; text-align:center; min-height:100vh; scroll-snap-align:start; }
+.features {
+  padding: 6rem 1.5rem;
+  border-top: 1px solid rgba(16,24,40,0.04);
+  /* different background from the normal white page background */
+  background: var(--muted, #f7f7f8);
+  min-height:100vh;
+  scroll-snap-align:start;
+}
+.cta-section { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:6rem 1.5rem; scroll-snap-align:start; }
+.features-grid { display:grid; gap:2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); max-width:1100px; margin:2rem auto 0; }
+
+/* small responsive tweaks */
+@media (min-width: 768px) {
+  .features-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+
