@@ -1,0 +1,78 @@
+# Top-level .gitignore for the SOEN-341 Events Web App monorepo
+# Excludes common Python/Django, Node/Vite, editor, OS, and OneDrive artifacts.
+
+### Python / Django ###
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+pip-wheel-metadata/
+build/
+dist/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+/.env
+.env
+.env.*
+
+# SQLite DB (development)
+*.sqlite3
+db.sqlite3
+
+# Django stuff
+*.log
+local_settings.py
+media/
+staticfiles/
+/**/migrations/__pycache__/
+
+### Node / Frontend ###
+node_modules/
+dist/
+.vite/
+/.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite build outputs
+/.turbo/
+
+### Editor / OS ###
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+desktop.ini
+
+### Python tooling caches ###
+.pytest_cache/
+.mypy_cache/
+.cache/
+
+### OneDrive / temp files ###
+# Office temporary files that start with ~$ and OneDrive temporary files
+~$*
+~*\~
+
+### Sensitive or local files ###
+# Keep .env and credentials out of the repo
+.env
+*.pem
+*.key
+
+### Logs and runtime files ###
+*.log
+*.pid
+
+### Misc ###
+# If you use JetBrains IDEs with workspace files
+*.iml
