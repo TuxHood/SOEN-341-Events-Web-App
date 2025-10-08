@@ -205,3 +205,30 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Use the custom user model defined in collegeEventsWeb.user_accounts
 AUTH_USER_MODEL = "user_accounts.User"
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+CSRF_COOKIE_HTTPONLY = False  # keep False so frontend can read the CSRF cookie value if you use CSRF
+CSRF_TRUSTED_ORIGINS = ["http://localhost:5173", "http://localhost:3000"]
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "SIGNING_KEY": SECRET_KEY,  # or a dedicated env var
+    "AUTH_COOKIE": "access_token",  # optional (we’ll set manually)
+    "AUTH_COOKIE_SECURE": False,    # True in production (HTTPS)
+    "AUTH_COOKIE_HTTP_ONLY": True,
+    "AUTH_COOKIE_SAMESITE": "Lax",  # "None" if cross-site + HTTPS
+}
+
