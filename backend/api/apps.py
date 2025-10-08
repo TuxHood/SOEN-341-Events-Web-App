@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class UserAccountsConfig(AppConfig):
+class ApiConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'collegeEventsWeb.user_accounts'
+    name = 'api'
