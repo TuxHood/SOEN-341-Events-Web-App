@@ -236,6 +236,28 @@ python manage.py runserver 8000
 
 Your API should be at `http://127.0.0.1:8000/api/events/`.
 
+Note: to specifically apply migrations related to accounts (or any app) and create an admin user, run the migrate and createsuperuser commands. On Windows PowerShell, if you are using the repository venv at `backend/.venv`, prefer calling the venv python with the call operator `&` so PowerShell parses the command correctly:
+
+```powershell
+# from repo root
+Set-Location -Path 'C:\path\to\your\repo\SOEN-341-Events-Web-App\backend\collegeEventsWeb'
+& '..\.venv\Scripts\python.exe' manage.py makemigrations
+& '..\.venv\Scripts\python.exe' manage.py migrate
+
+# create the admin (you will be prompted for username/email/password)
+& '..\.venv\Scripts\python.exe' manage.py createsuperuser
+
+# then run the dev server
+& '..\.venv\Scripts\python.exe' manage.py runserver 8000
+```
+
+If you prefer to run migrations for a single app (for example `user_accounts`), you can pass the app label:
+
+```bash
+python manage.py migrate user_accounts
+```
+
+
 ---
 
 # 4) Frontend (React + Vite)
