@@ -466,6 +466,7 @@ Create `docker-compose.yml` in the root if you want containers later. If you wan
 # backend
 cd backend
 . .venv/Scripts/activate   # or: source .venv/bin/activate
+cd collegeEventsWeb
 python manage.py runserver 8000
 ```
 
@@ -477,11 +478,3 @@ cd frontend
 npm run dev
 ```
 
-That’s it! If you want, I can add:
-
-* JWT auth (Django REST + djangorestframework-simplejwt)
-* CORS/CSRF production settings
-* A minimal **Events** CRUD with pagination & search
-* A Postgres migration script for CI/CD
-
-Tell me which you want next and I’ll wire it up.
