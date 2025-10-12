@@ -8,6 +8,7 @@ import EventDetail from './pages/EventDetail'
 import OrganizerDashboard from './pages/OrganizerDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import LoginPage from './pages/LoginPage'
+import SignUpPage from './pages/SignUpPage'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/organizer" element={<OrganizerDashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/auth/login" element={<LoginPage />} />
+        <Route path="/auth/sign-up" element={<SignUpPage />} />
       </Routes>
     </BrowserRouter>
   )
