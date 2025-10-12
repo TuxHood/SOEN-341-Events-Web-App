@@ -3,11 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './SignUpPage.css';
 import { API_ENDPOINTS, apiCall } from '../api/config';
 
-/*
- * BACKEND DEVELOPERS: 
- * This component calls API_ENDPOINTS.register
- * See: frontend/src/api/README.md for required endpoint format
- */
 
 export default function SignUpPage() {
   const [step, setStep] = useState('choose'); // 'choose', 'student', 'organizer'
@@ -22,12 +17,14 @@ export default function SignUpPage() {
   const navigate = useNavigate();
 
   // Handle role selection
+
   const handleRoleSelect = (role) => {
     setStep(role);
     setError('');
   };
 
   // Handle form input changes
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -36,6 +33,7 @@ export default function SignUpPage() {
   };
 
   // Handle form submission
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -59,19 +57,21 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
+
       // Call the register API endpoint
+
       const result = await apiCall(API_ENDPOINTS.register, {
         method: 'POST',
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          role: step, // 'student' or 'organizer'
+          role: step, 
         }),
       });
 
       if (result.ok) {
-        // Success!
+        
         if (step === 'organizer') {
           alert('Success! Your organizer account is pending approval. You will receive an email once approved.');
         } else {
@@ -92,7 +92,9 @@ export default function SignUpPage() {
   return (
     <div className="signup-page">
       <div className="signup-container">
-        {/* Step 1: Choose Role */}
+
+        {/*Choose Role */}
+
         {step === 'choose' && (
           <>
             <h1>Create Your Account</h1>
@@ -132,7 +134,8 @@ export default function SignUpPage() {
           </>
         )}
 
-        {/* Step 2: Registration Form */}
+        {/*Registration Form */}
+
         {(step === 'student' || step === 'organizer') && (
           <div className="signup-form-container">
             <button 
