@@ -236,6 +236,28 @@ python manage.py runserver 8000
 
 Your API should be at `http://127.0.0.1:8000/api/events/`.
 
+Note: to specifically apply migrations related to accounts (or any app) and create an admin user, run the migrate and createsuperuser commands. On Windows PowerShell, if you are using the repository venv at `backend/.venv`, prefer calling the venv python with the call operator `&` so PowerShell parses the command correctly:
+
+```powershell
+# from repo root
+Set-Location -Path 'C:\path\to\your\repo\SOEN-341-Events-Web-App\backend\collegeEventsWeb'
+& '..\.venv\Scripts\python.exe' manage.py makemigrations
+& '..\.venv\Scripts\python.exe' manage.py migrate
+
+# create the admin (you will be prompted for username/email/password)
+& '..\.venv\Scripts\python.exe' manage.py createsuperuser
+
+# then run the dev server
+& '..\.venv\Scripts\python.exe' manage.py runserver 8000
+```
+
+If you prefer to run migrations for a single app (for example `user_accounts`), you can pass the app label:
+
+```bash
+python manage.py migrate user_accounts
+```
+
+
 ---
 
 # 4) Frontend (React + Vite)
@@ -308,6 +330,48 @@ npm run dev
 Vite runs on `http://localhost:5173`.
 
 ---
+
+## Using the provided helper scripts (recommended for teammates)
+
+To speed up onboarding on Windows (PowerShell), this repository includes two helper scripts under `scripts/` that wrap the common setup and run steps:
+
+- `scripts/start-backend.ps1` — creates or reuses `backend/.venv`, installs Python dependencies from `backend/requirements.txt`, runs migrations, and starts Django on port 8000.
+- `scripts/start-frontend.ps1` — installs frontend dependencies (if `node_modules` is missing) and starts the Vite dev server.
+
+Quick usage (from the repository root, PowerShell):
+
+```powershell
+# Start the backend (creates venv if needed, installs deps, applies migrations, runs dev server)
+Set-Location -Path 'C:\path\to\your\repo\SOEN-341-Events-Web-App'
+.\scripts\start-backend.ps1
+
+# In a separate terminal, start the frontend
+Set-Location -Path 'C:\path\to\your\repo\SOEN-341-Events-Web-App'
+.\scripts\start-frontend.ps1
+```
+
+Notes:
+
+- If you prefer SQLite for local development the project defaults to `USE_SQLITE=1` in `collegeEventsWeb/settings.py`. To use PostgreSQL, create `backend/.env` (based on `backend/.env.example`), set `USE_SQLITE=0`, and populate the `POSTGRES_*` variables before running `start-backend.ps1`.
+- The `.vscode/launch.json` compound configuration is provided if your teammates prefer to start both servers from the VS Code Run panel (`Run Frontend + Backend`).
+- The scripts are PowerShell-first; macOS/Linux users should follow the manual commands earlier in this guide.
+
+## Git / onboarding tips for teammates
+
+1. Clone the repository and create a working branch:
+
+```bash
+git clone <repo-url>
+cd SOEN-341-Events-Web-App
+git checkout -b feat/your-feature-name
+```
+
+2. Start the servers using the scripts above (or run the manual commands in this guide).
+
+3. Commit only source and configuration files. The repository `.gitignore` files (root, `backend/.gitignore`, and `frontend/.gitignore`) ignore local artifacts such as `node_modules/`, `.env`, and `.venv` so they won't be committed.
+
+4. When opening a pull request, include a short description of your changes, any migration steps, and any environment variables teammates need to add to their local `backend/.env` (never commit real secrets).
+
 
 # 5) VS Code: Debug both servers
 
@@ -466,6 +530,7 @@ Create `docker-compose.yml` in the root if you want containers later. If you wan
 # backend
 cd backend
 . .venv/Scripts/activate   # or: source .venv/bin/activate
+cd collegeEventsWeb
 python manage.py runserver 8000
 ```
 
@@ -477,11 +542,3 @@ cd frontend
 npm run dev
 ```
 
-That’s it! If you want, I can add:
-
-* JWT auth (Django REST + djangorestframework-simplejwt)
-* CORS/CSRF production settings
-* A minimal **Events** CRUD with pagination & search
-* A Postgres migration script for CI/CD
-
-Tell me which you want next and I’ll wire it up.

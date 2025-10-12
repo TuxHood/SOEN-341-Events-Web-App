@@ -17,9 +17,6 @@ export default function HomePage() {
             <Button asChild size="lg">
               <Link to="/auth/sign-up">Get Started</Link>
             </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link to="/auth/login">Login</Link>
-            </Button>
           </div>
         </div>
       </section>
