@@ -1,5 +1,5 @@
 from django.db import models
-from user_accounts.models import User
+from collegeEventsWeb.user_accounts.models import User
 
 class Category(models.Model):
     name = models.CharField(max_length=255, unique=True)

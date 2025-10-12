@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
-from user_accounts.models import User
-from event_management.models import Event
+from collegeEventsWeb.user_accounts.models import User
+from collegeEventsWeb.event_management.models import Event
 
 class Ticket(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

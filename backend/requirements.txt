@@ -1,5 +1,8 @@
-django>=5.2.7
-djangorestframework
-psycopg2-binary
 python-dotenv
-django-cors-headers
+python-dotenv==1.1.1
+django 
+djangorestframework 
+psycopg2-binary 
+python-dotenv 
+corsheaders
+djangorestframework-simplejwt

@@ -1,5 +1,5 @@
 """
-URL configuration for collegeEventsWeb project.
+URL configuration for core project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/
@@ -16,13 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import RedirectView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # root -> events list (friendly default)
-    path('', RedirectView.as_view(url='/api/events/', permanent=False)),
-    path('api/events/', include('collegeEventsWeb.event_management.urls')),
-    path('api/users/', include('collegeEventsWeb.user_accounts.urls')),
-    path('api/tickets/', include('collegeEventsWeb.ticket_services.urls')),
+    # include the collegeEventsWeb project's URL configuration so API routes
+    # (for example /api/events/) are available when using the top-level
+    # manage.py which points to core.settings
+    path('', include('collegeEventsWeb.collegeEventsWeb.urls')),
 ]
