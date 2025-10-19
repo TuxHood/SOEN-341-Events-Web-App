@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'users',  # add the users app
 ]
 
 MIDDLEWARE = [
@@ -72,16 +73,25 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# Using SQLite for local development (easier setup, no PostgreSQL required)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'soen341',       
-        'USER': 'postgres',        # default PostgreSQL username
-        'PASSWORD': 'manoloza',      #change to own password for postgresql
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# Uncomment below to use PostgreSQL (ensure PostgreSQL is running first)
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'soen341',       
+#         'USER': 'postgres',        # default PostgreSQL username
+#         'PASSWORD': 'manoloza',      #change to own password for postgresql
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
 
 
 

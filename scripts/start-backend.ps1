@@ -35,8 +35,7 @@ if (Test-Path -Path (Join-Path $backendPath 'requirements.txt')) {
     Write-Host "No requirements.txt found in $backendPath; skipping pip install -r requirements.txt"
 }
 
-$manageCwd = Join-Path $backendPath 'collegeEventsWeb'
-Set-Location -Path $manageCwd
+Set-Location -Path $ProjectRoot
 
 Write-Host "Applying migrations (if any)..."
 & $venvPython manage.py makemigrations
