@@ -50,7 +50,7 @@ export default function EventDiscovery() {
       description:
         "The grand finale of the interfaculty basketball league — come cheer for your department!",
       image:
-        "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=60",
+        "https://t4.ftcdn.net/jpg/00/62/39/19/360_F_62391976_WKbOA72PbU28IAfUjn6tLAPz3e2IVxdr.jpg",
     },
   ];
 

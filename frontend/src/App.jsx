@@ -9,6 +9,7 @@ import OrganizerDashboard from './pages/OrganizerDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
+import EventDiscovery from './pages/EventDiscovery'
 
 function App() {
   return (
@@ -21,11 +22,11 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/event/:id" element={<EventDetail />} />
-        <Route path="/events" element={<EventDetail />} />
         <Route path="/organizer" element={<OrganizerDashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/sign-up" element={<SignUpPage />} />
+        <Route path="/events" element={<EventDiscovery />} />
       </Routes>
     </BrowserRouter>
   )
