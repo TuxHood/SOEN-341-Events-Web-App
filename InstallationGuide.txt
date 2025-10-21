@@ -1,544 +1,188 @@
-Awesome stack. Here’s a clean, step-by-step way to get **React (Vite) + Django REST + PostgreSQL** running in VS Code from a blank machine.
+Quickstart — React (Vite) + Django REST (PowerShell-friendly)
 
----
+This quick guide gets a teammate from a fresh clone to a running local dev environment (backend + frontend) on Windows PowerShell. It keeps commands copy-pasteable and focuses on the most common tasks.
 
-# 0) VS Code + Extensions
+Prerequisites
+- Node.js (LTS), Python 3.11+ (3.12 recommended), Git.
+- Optional: PostgreSQL for DB testing; the project defaults to SQLite for local dev.
 
-Install **VS Code**, then add these extensions:
-
-* Python (Microsoft)
-* Pylance
-* Django
-* ESLint
-* Prettier
-* Docker (optional)
-* GitLens (optional)
-* PostgreSQL (optional)
-
----
-
-# 1) Install prerequisites (pick your OS)
-
-**Windows (PowerShell)**
-
+1) Clone and open the repo
 ```powershell
-winget install -e --id OpenJS.NodeJS.LTS
-winget install -e --id Python.Python.3.12
-winget install -e --id PostgreSQL.PostgreSQL
-```
-
-**macOS**
-
-```bash
-# Homebrew
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install node python@3.12 postgresql
-brew services start postgresql
-```
-
-**Ubuntu/Debian**
-
-```bash
-sudo apt update
-sudo apt install -y curl ca-certificates gnupg lsb-release
-# Node (via Nodesource or nvm; nvm shown)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
-nvm install --lts
-
-sudo apt install -y python3 python3-venv python3-pip postgresql postgresql-contrib
-sudo service postgresql start
-```
-
-> If `psql` isn’t on PATH, restart your terminal or add it to PATH.
-
----
-
-# 2) Create the workspace
-
-```bash
-mkdir campus-events && cd campus-events
-mkdir backend frontend
+git clone <repo-url>
+cd SOEN-341-Events-Web-App
 code .
 ```
 
----
-
-# 3) Backend (Django + DRF + PostgreSQL)
-
-## 3.1 Create and activate a virtual environment
-
-```bash
-cd backend
-python -m venv .venv
-# Windows
-. .venv/Scripts/activate
-# macOS/Linux
-source .venv/bin/activate
-```
-
-## 3.2 Install packages
-
-```bash
-pip install --upgrade pip
-pip install django djangorestframework psycopg2-binary python-dotenv corsheaders
-```
-
-## 3.3 Start Django project/app
-
-```bash
-django-admin startproject core .
-python manage.py startapp api
-```
-
-## 3.4 Enable apps & middleware (core/settings.py)
-
-```python
-INSTALLED_APPS = [
-    # ...
-    "corsheaders",
-    "rest_framework",
-    "api",
-]
-
-MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
-    # ...
-]
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite dev server
-]
-```
-
-## 3.5 Environment variables
-
-Create `backend/.env`:
-
-```
-DEBUG=True
-SECRET_KEY=change-me
-DB_NAME=campusevents
-DB_USER=campususer
-DB_PASSWORD=campuspass
-DB_HOST=localhost
-DB_PORT=5432
-```
-
-Load it in `core/settings.py`:
-
-```python
-from pathlib import Path
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-DEBUG = os.getenv("DEBUG", "False") == "True"
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST", "localhost"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-    }
-}
-```
-
-## 3.6 Create the database/user (psql)
-
-Open `psql`:
-
-```bash
-# Windows example
-"C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres
-# macOS/Linux
-psql -U postgres
-```
-
-Then:
-
-```sql
-CREATE USER campususer WITH PASSWORD 'campuspass';
-CREATE DATABASE campusevents OWNER campususer;
-GRANT ALL PRIVILEGES ON DATABASE campusevents TO campususer;
-```
-
-## 3.7 Simple API example
-
-`backend/api/models.py`
-
-```python
-from django.db import models
-
-class Event(models.Model):
-    title = models.CharField(max_length=200)
-    start_time = models.DateTimeField()
-    location = models.CharField(max_length=200, blank=True)
-    capacity = models.IntegerField(default=0)
-
-    def __str__(self):
-        return self.title
-```
-
-`backend/api/serializers.py`
-
-```python
-from rest_framework import serializers
-from .models import Event
-
-class EventSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Event
-        fields = "__all__"
-```
-
-`backend/api/views.py`
-
-```python
-from rest_framework.viewsets import ModelViewSet
-from .models import Event
-from .serializers import EventSerializer
-
-class EventViewSet(ModelViewSet):
-    queryset = Event.objects.all().order_by("start_time")
-    serializer_class = EventSerializer
-```
-
-`backend/core/urls.py`
-
-```python
-from django.contrib import admin
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from api.views import EventViewSet
-
-router = DefaultRouter()
-router.register(r"events", EventViewSet, basename="event")
-
-urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/", include(router.urls)),
-]
-```
-
-Run migrations and create a superuser:
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver 8000
-```
-
-Your API should be at `http://127.0.0.1:8000/api/events/`.
-
-Note: to specifically apply migrations related to accounts (or any app) and create an admin user, run the migrate and createsuperuser commands. On Windows PowerShell, if you are using the repository venv at `backend/.venv`, prefer calling the venv python with the call operator `&` so PowerShell parses the command correctly:
-
+2) Backend quickstart (Django)
+- Create and activate the venv (one-time per machine):
 ```powershell
-# from repo root
-Set-Location -Path 'C:\path\to\your\repo\SOEN-341-Events-Web-App\backend\collegeEventsWeb'
-& '..\.venv\Scripts\python.exe' manage.py makemigrations
-& '..\.venv\Scripts\python.exe' manage.py migrate
-
-# create the admin (you will be prompted for username/email/password)
-& '..\.venv\Scripts\python.exe' manage.py createsuperuser
-
-# then run the dev server
-& '..\.venv\Scripts\python.exe' manage.py runserver 8000
+cd backend\collegeEventsWeb
+# create venv if missing
+python -m venv .venv
+# activate for this session
+.\.venv\Scripts\Activate.ps1
 ```
 
-If you prefer to run migrations for a single app (for example `user_accounts`), you can pass the app label:
-
-```bash
-python manage.py migrate user_accounts
-```
-
-
----
-
-# 4) Frontend (React + Vite)
-
-## 4.1 Create Vite app
-
-```bash
-cd ../frontend
-npm create vite@latest . -- --template react
-npm install
-npm install axios
-```
-
-## 4.2 Add an API client
-
-`frontend/src/api.js`
-
-```javascript
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api",
-});
-
-export default api;
-```
-
-Create `.env` in `frontend/` for dev:
-
-```
-VITE_API_URL=http://127.0.0.1:8000/api
-```
-
-## 4.3 Sample component
-
-`frontend/src/App.jsx`
-
-```jsx
-import { useEffect, useState } from "react";
-import api from "./api";
-
-export default function App() {
-  const [events, setEvents] = useState([]);
-
-  useEffect(() => {
-    api.get("/events/").then((res) => setEvents(res.data));
-  }, []);
-
-  return (
-    <main style={{ padding: 24 }}>
-      <h1>Campus Events</h1>
-      <ul>
-        {events.map((e) => (
-          <li key={e.id}>
-            <strong>{e.title}</strong> — {new Date(e.start_time).toLocaleString()}
-          </li>
-        ))}
-      </ul>
-    </main>
-  );
+- Install dependencies (manual; the `scripts/start-backend.ps1` also automates this):
+```powershell
+& '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
+if (Test-Path requirements.txt) {
+  & '.\.venv\Scripts\pip.exe' install -r requirements.txt
+} else {
+  & '.\.venv\Scripts\pip.exe' install django==5.2.7 djangorestframework django-cors-headers djangorestframework-simplejwt python-dotenv
 }
 ```
 
-## 4.4 Run the frontend
+- Apply migrations and create a superuser (interactive):
+```powershell
+& '.\.venv\Scripts\python.exe' manage.py makemigrations
+& '.\.venv\Scripts\python.exe' manage.py migrate --noinput
+& '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
+```
 
-```bash
+- Start the dev server:
+```powershell
+& '.\.venv\Scripts\python.exe' manage.py runserver 8000
+```
+
+Notes
+- Admin UI: http://127.0.0.1:8000/admin/
+- API roots present in this project: /api/events/, /api/users/, /api/tickets/
+
+3) Frontend quickstart (Vite + React)
+- In a separate terminal (repo root):
+```powershell
+cd frontend
+npm install   # first run only
 npm run dev
 ```
+- Vite runs at http://localhost:5173 by default (may use 5174 if 5173 is busy).
 
-Vite runs on `http://localhost:5173`.
-
----
-
-## Using the provided helper scripts (recommended for teammates)
-
-To speed up onboarding on Windows (PowerShell), this repository includes two helper scripts under `scripts/` that wrap the common setup and run steps:
-
-- `scripts/start-backend.ps1` — creates or reuses `backend/.venv`, installs Python dependencies from `backend/requirements.txt`, runs migrations, and starts Django on port 8000.
-- `scripts/start-frontend.ps1` — installs frontend dependencies (if `node_modules` is missing) and starts the Vite dev server.
-
-Quick usage (from the repository root, PowerShell):
-
+4) Helper scripts (recommended)
+- Use the repo helper scripts to start dev servers quickly:
 ```powershell
-# Start the backend (creates venv if needed, installs deps, applies migrations, runs dev server)
-Set-Location -Path 'C:\path\to\your\repo\SOEN-341-Events-Web-App'
+# from repo root
 .\scripts\start-backend.ps1
-
-# In a separate terminal, start the frontend
-Set-Location -Path 'C:\path\to\your\repo\SOEN-341-Events-Web-App'
-.\scripts\start-frontend.ps1
+.\scripts\start-frontend.ps1  # in a second terminal
 ```
 
-Notes:
-
-- If you prefer SQLite for local development the project defaults to `USE_SQLITE=1` in `collegeEventsWeb/settings.py`. To use PostgreSQL, create `backend/.env` (based on `backend/.env.example`), set `USE_SQLITE=0`, and populate the `POSTGRES_*` variables before running `start-backend.ps1`.
-- The `.vscode/launch.json` compound configuration is provided if your teammates prefer to start both servers from the VS Code Run panel (`Run Frontend + Backend`).
-- The scripts are PowerShell-first; macOS/Linux users should follow the manual commands earlier in this guide.
-
-## Git / onboarding tips for teammates
-
-1. Clone the repository and create a working branch:
-
-```bash
-git clone <repo-url>
-cd SOEN-341-Events-Web-App
-git checkout -b feat/your-feature-name
-```
-
-2. Start the servers using the scripts above (or run the manual commands in this guide).
-
-3. Commit only source and configuration files. The repository `.gitignore` files (root, `backend/.gitignore`, and `frontend/.gitignore`) ignore local artifacts such as `node_modules/`, `.env`, and `.venv` so they won't be committed.
-
-4. When opening a pull request, include a short description of your changes, any migration steps, and any environment variables teammates need to add to their local `backend/.env` (never commit real secrets).
-
-
-# 5) VS Code: Debug both servers
-
-In the project root, create `.vscode/launch.json`:
-
-```json
-{
-  "version": "0.2.0",
-  "compounds": [
-    {
-      "name": "Run Frontend + Backend",
-      "configurations": ["Django Server", "Vite Dev Server"]
-    }
-  ],
-  "configurations": [
-    {
-      "name": "Django Server",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/backend/manage.py",
-      "args": ["runserver", "8000"],
-      "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}/backend",
-      "envFile": "${workspaceFolder}/backend/.env"
-    },
-    {
-      "name": "Vite Dev Server",
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}/frontend",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"]
-    }
-  ]
-}
-```
-
-Now start **Run Frontend + Backend** from the Run/Debug panel.
-
----
-
-# 6) Quality of life
-
-**Backend formatting/linting**
-
-```bash
-pip install black isort flake8
-```
-
-Add (optional) in `pyproject.toml`:
-
-```toml
-[tool.black]
-line-length = 100
-```
-
-**Frontend linting/formatting**
-
-```bash
-cd frontend
-npm i -D eslint eslint-plugin-react eslint-plugin-react-hooks @eslint/js eslint-config-prettier prettier
-```
-
----
-
-
----
-
-## Troubleshooting (Windows / PowerShell)
-
-These are direct fixes and PowerShell-specific tips for issues encountered while following this guide on Windows.
-
-- Problem: virtualenv points to a missing Python executable (common when a venv was created with a different interpreter or on another machine)
-  - Symptom: activation or running the venv's python fails with an error like "No Python at 'C:\...\Python312\python.exe'" or `pyvenv.cfg` contains a `home = ...` pointing to a non-existent path.
-  - Fix: recreate the venv with your current system Python (safe and quick). From the `backend` folder run:
-
+5) Admin & create_admin patterns (safe)
+- Interactive (recommended):
+  - `manage.py createsuperuser` — prompts for email/name/password.
+- Non-interactive automation pattern (session env vars, recommended over hardcoding):
 ```powershell
-# remove and recreate the virtual environment
-Set-Location -Path 'C:\path\to\your\project\backend'
-Remove-Item -Recurse -Force .\.venv
-python -m venv .venv
+# set session vars (or read from secret manager)
+$env:NEW_ADMIN_EMAIL='admin@example.com'
+$env:NEW_ADMIN_NAME='Admin Name'
+$env:NEW_ADMIN_PASSWORD='S3cureP@ssw0rd'  # prefer Read-Host or secret store
 
-# update pip and install backend deps into the new venv
-& '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
-& '.\.venv\Scripts\pip.exe' install django djangorestframework psycopg2-binary python-dotenv django-cors-headers
+cd backend\collegeEventsWeb
+.\.venv\Scripts\Activate.ps1
+& '.\.venv\Scripts\python.exe' - <<'PY'
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE','collegeEventsWeb.settings')
+import django; django.setup()
+from user_accounts.models import User
+email=os.environ.get('NEW_ADMIN_EMAIL')
+name=os.environ.get('NEW_ADMIN_NAME')
+password=os.environ.get('NEW_ADMIN_PASSWORD')
+if not User.objects.filter(email=email).exists():
+    User.objects.create_superuser(email=email, name=name, password=password)
+    print('Superuser created:', email)
+else:
+    u = User.objects.get(email=email)
+    u.set_password(password)
+    u.role = User.Role.ADMIN
+    u.status = User.Status.ACTIVE
+    u.is_staff = True
+    u.is_superuser = True
+    u.save()
+    print('User promoted to superuser (password updated):', email)
+PY
 ```
 
-- PowerShell activation notes
-  - If Activate.ps1 is blocked, allow it for the session:
+- There is a `create_admin.py` template in the repo root — do not commit passwords into it. Prefer reading secrets from the environment or a secure vault.
 
+6) Discovering routes (list all URL patterns)
+- Option A — django-extensions (dev only):
+```powershell
+cd backend\collegeEventsWeb
+.\.venv\Scripts\Activate.ps1
+& '.\.venv\Scripts\pip.exe' install django-extensions
+# add 'django_extensions' to INSTALLED_APPS in settings.py (dev only)
+& '.\.venv\Scripts\python.exe' manage.py show_urls
+```
+
+- Option B — inline (no extra deps):
+```powershell
+cd backend\collegeEventsWeb
+.\.venv\Scripts\Activate.ps1
+& '.\.venv\Scripts\python.exe' - <<'PY'
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE','collegeEventsWeb.settings')
+import django; django.setup()
+from django.urls import get_resolver
+for p in get_resolver().url_patterns:
+    print(p)
+PY
+```
+
+- Option C — add DRF OpenAPI + docs (I can add `/openapi/` and `/docs/` for a browsable API catalog).
+
+7) How to call the API
+- Use browser (DRF browsable UI) or curl / Invoke-RestMethod:
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:8000/api/events/ -Method GET
+```
+- Login via API:
+POST to `/api/users/login` with JSON `{"email":"...","password":"..."}` — the project returns tokens and sets an HttpOnly cookie as configured.
+
+8) Troubleshooting (PowerShell tips)
+- Allow activation for session if blocked:
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
 . .\.venv\Scripts\Activate.ps1
 ```
-
-- Running Django commands from PowerShell
-  - When calling the venv python by path, use the call operator `&` so PowerShell parses the command correctly:
-
+- Recreate a broken venv:
 ```powershell
-Set-Location -Path 'C:\path\to\your\project\backend\collegeEventsWeb'
-& 'C:\path\to\your\project\backend\.venv\Scripts\python.exe' manage.py makemigrations
-& 'C:\path\to\your\project\backend\.venv\Scripts\python.exe' manage.py migrate --noinput
+Remove-Item -Recurse -Force .\.venv
+python -m venv .venv
+& '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
+& '.\.venv\Scripts\pip.exe' install -r requirements.txt
 ```
-
-  - To start the dev server in the background from PowerShell (detached), use Start-Process:
-
+- Ensure temp scripts are UTF-8 without BOM when piping into `manage.py shell`:
 ```powershell
-Start-Process -NoNewWindow -FilePath 'C:\path\to\your\project\backend\.venv\Scripts\python.exe' -ArgumentList 'manage.py','runserver','0.0.0.0:8000'
+[System.IO.File]::WriteAllText('create_admin.py', $scriptContents, (New-Object System.Text.UTF8Encoding($false)))
 ```
 
-- PowerShell operator differences
-  - PowerShell does not support shell operators like `||` and `&&` in the same way as bash. Use separate commands or PowerShell conditional statements instead.
+9) Improvements I can add (pick one)
+- Convert `create_admin.py` into a management command `manage.py create_admin --email ...` (recommended).
+- Add DRF OpenAPI + docs endpoints (`/openapi/`, `/docs/`).
+- Add a custom management command `show_urls` to print a friendly list of routes.
 
-- npm / Start-Process quirks on Windows
-  - If `Start-Process -FilePath 'npm' -ArgumentList 'run','dev'` fails with "%1 is not a valid Win32 application", run npm via `cmd` or run `npm run dev` directly in an interactive terminal:
+Tell me which improvement you want and I will implement and verify it locally.
 
+--
+
+Quick demo: the repository now provides a management command and a safe PowerShell wrapper.
+
+1) Direct (management command)
 ```powershell
-# start Vite in a new cmd process (detached)
-cmd /c "cd /d C:\path\to\your\project\frontend && npm run dev"
-
-# or just run in the active PowerShell terminal (recommended while developing)
-Set-Location -Path 'C:\path\to\your\project\frontend'
-npm run dev
+cd backend\collegeEventsWeb
+.\.venv\Scripts\Activate.ps1
+& '.\.venv\Scripts\python.exe' manage.py create_admin --email admin@concordia.ca --name 'Admin Concordia'
+# Omit --password to be prompted securely.
 ```
 
-- Quick checks
-  - Check your system Python version:
-
+2) Wrapper (prompts securely)
 ```powershell
-py -3 --version
-python --version
+# from repo root
+.\scripts\create-admin.ps1
 ```
 
-  - Inspect the venv config if something looks off:
+Note: this repository contains multiple Django project folders in history. The canonical dev project is
+`backend/collegeEventsWeb` — all `manage.py` commands shown in this guide assume you are in that directory
+or explicitly call that `manage.py`. If you see an older `manage.py` under `backend/`, it is legacy and may be
+archived or removed to avoid confusion.
 
-```powershell
-Get-Content .\.venv\pyvenv.cfg
-```
-
-If `pyvenv.cfg` shows a `home =` path that doesn't exist on your machine, recreate the venv as shown above.
-
----
-
-If you'd like, I can append these PowerShell-ready commands into a tiny `scripts/` folder (two PowerShell scripts: `start-backend.ps1` and `start-frontend.ps1`) or add a `.vscode/launch.json` compound configuration so you can start both servers from the Run panel. Tell me which you prefer and I'll add it.
-# 7) (Optional) Docker Compose (one command dev)
-
-Create `docker-compose.yml` in the root if you want containers later. If you want this, say the word and I’ll drop a ready-to-run compose with services for **postgres**, **backend (gunicorn)**, and **frontend (nginx)** plus dev overrides.
-
----
-
-# 8) What to run each time
-
-**Terminal 1**
-
-```bash
-# backend
-cd backend
-. .venv/Scripts/activate   # or: source .venv/bin/activate
-cd collegeEventsWeb
-python manage.py runserver 8000
-```
-
-**Terminal 2**
-
-```bash
-# frontend
-cd frontend
-npm run dev
-```
 

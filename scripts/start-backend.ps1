@@ -29,7 +29,8 @@ $venvPip = Join-Path $projectDir '.venv\Scripts\pip.exe'
 
 Write-Host "Activating virtual environment (in current session)..."
 try {
-    & (Join-Path $backendPath '.venv\Scripts\Activate.ps1')
+    # Activate the venv inside the selected project directory so activation matches the venv used below
+    & (Join-Path $projectDir '.venv\Scripts\Activate.ps1')
 } catch {
     Write-Host "Activation script could not be sourced into this session; we'll call venv python directly."
 }

@@ -20,8 +20,8 @@ from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # root -> events list (friendly default)
-    path('', RedirectView.as_view(url='/api/events/', permanent=False)),
+    # root -> admin (show admin login by default)
+    path('', RedirectView.as_view(url='/admin/', permanent=False)),
     path('api/events/', include('event_management.urls')),
     path('api/users/', include('user_accounts.urls')),
     path('api/tickets/', include('ticket_services.urls')),
