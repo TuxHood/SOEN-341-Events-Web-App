@@ -22,7 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # root -> events list (friendly default)
     path('', RedirectView.as_view(url='/api/events/', permanent=False)),
-    path('api/events/', include('collegeEventsWeb.event_management.urls')),
-    path('api/users/', include('collegeEventsWeb.user_accounts.urls')),
-    path('api/tickets/', include('collegeEventsWeb.ticket_services.urls')),
+    path('api/events/', include('event_management.urls')),
+    path('api/users/', include('user_accounts.urls')),
+    path('api/tickets/', include('ticket_services.urls')),
 ]
