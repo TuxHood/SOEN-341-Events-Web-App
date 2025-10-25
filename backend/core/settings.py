@@ -231,4 +231,5 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SAMESITE": "Lax",  # "None" if cross-site + HTTPS
 }
-
+# Custom user model for RBAC
+AUTH_USER_MODEL = "collegeEventsWeb.user_accounts.User"
