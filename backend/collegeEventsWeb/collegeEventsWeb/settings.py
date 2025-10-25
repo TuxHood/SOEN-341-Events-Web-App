@@ -40,6 +40,11 @@ load_dotenv(env_path)
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Ensure the project package directory is on sys.path so imports like
+# 'collegeEventsWeb.event_management' work regardless of execution context.
+import sys
+sys.path.insert(0, str(BASE_DIR))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -187,4 +192,4 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Use the custom user model
-AUTH_USER_MODEL = 'user_accounts.User'
+#AUTH_USER_MODEL = 'user_accounts.User'
