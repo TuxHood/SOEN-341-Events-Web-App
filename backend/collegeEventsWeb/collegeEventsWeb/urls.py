@@ -22,7 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # root -> admin (show admin login by default)
     path('', RedirectView.as_view(url='/admin/', permanent=False)),
-    path('api/events/', include('event_management.urls')),
-    path('api/users/', include('user_accounts.urls')),
-    path('api/tickets/', include('ticket_services.urls')),
+    path('api/', include('event_management.urls')),
+    path('api/', include('user_accounts.urls')),
+    path('api/', include('ticket_services.urls')),
 ]
