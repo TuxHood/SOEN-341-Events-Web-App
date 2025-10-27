@@ -28,9 +28,6 @@ A platform for students to discover, organize, and attend campus events. It's bu
 
 - **Organizer**: `organizer@example.com` / `testpass123`
 - **Attendee**: `attendee1@example.com` / `testpass123`
-- **Admin**: `karmatuxhood@gmail.com` / (your password)
-
-See [CREDENTIALS.md](CREDENTIALS.md) for more details.
 
 **Create sample data:**
 ```bash
