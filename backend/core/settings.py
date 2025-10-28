@@ -185,16 +185,16 @@ ROOT_URLCONF = "core.urls"
 # PostgreSQL (from .env)
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST", "localhost"),
-        "PORT": os.getenv("DB_PORT", "5432"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
-CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -203,23 +203,28 @@ USE_TZ = True
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Use the custom user model defined in collegeEventsWeb.user_accounts
+# ✅ Use the custom user model (RBAC)
 AUTH_USER_MODEL = "user_accounts.User"
+
+# ✅ CORS & CSRF settings
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
+CSRF_COOKIE_HTTPONLY = False  # keep False so frontend can read the CSRF cookie value if you use CSRF
+CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
 ]
-CSRF_COOKIE_HTTPONLY = False  # keep False so frontend can read the CSRF cookie value if you use CSRF
-CSRF_TRUSTED_ORIGINS = ["http://localhost:5173", "http://localhost:3000"]
 
+# ✅ Django REST Framework configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.AllowAny",
+    ),
 }
 
+# ✅ JWT settings
 from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),
@@ -231,5 +236,3 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SAMESITE": "Lax",  # "None" if cross-site + HTTPS
 }
-# Custom user model for RBAC
-AUTH_USER_MODEL = "collegeEventsWeb.user_accounts.User"
