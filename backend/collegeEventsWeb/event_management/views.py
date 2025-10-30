@@ -1,55 +1,49 @@
-from rest_framework import viewsets, status
+from rest_framework import status, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Count, Q
-from .models import Event, Category, Venue
-from .serializers import EventSerializer, CategorySerializer, VenueSerializer
+from django.utils import timezone
+from .models import Event
+from .serializers import EventSerializer
+
 
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
 
-    @action(detail=True, methods=['get'], url_path='analytics')
-    def analytics(self, request, pk=None):
-        """
-        Get analytics data for a specific event:
-        - Total tickets issued
-        - Tickets checked in (attendance)
-        - Venue capacity
-        - Remaining capacity
-        - Check-in percentage
-        """
+    # Permissions logic — only admins can approve/reject
+    def get_permissions(self):
+        if self.action in ['approve', 'reject']:
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
+
+    # --- Admin approves event ---
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def approve(self, request, pk=None):
+        """Admin approves and publishes an event."""
         event = self.get_object()
-        
-        # Get ticket statistics
-        total_tickets = event.tickets.count()
-        checked_in = event.tickets.filter(is_used=True).count()
-        venue_capacity = event.venue.capacity
-        remaining_capacity = venue_capacity - total_tickets
-        
-        # Calculate percentages
-        check_in_percentage = (checked_in / total_tickets * 100) if total_tickets > 0 else 0
-        capacity_utilization = (total_tickets / venue_capacity * 100) if venue_capacity > 0 else 0
-        
-        analytics_data = {
-            'event_id': event.id,
-            'event_title': event.title,
-            'tickets_issued': total_tickets,
-            'tickets_checked_in': checked_in,
-            'tickets_pending': total_tickets - checked_in,
-            'venue_capacity': venue_capacity,
-            'remaining_capacity': remaining_capacity,
-            'check_in_percentage': round(check_in_percentage, 2),
-            'capacity_utilization': round(capacity_utilization, 2),
-        }
-        
-        return Response(analytics_data)
+        event.status = 'approved'
+        event.is_published = True
+        event.reviewed_by = request.user
+        event.reviewed_at = timezone.now()
+        event.save()
 
-class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+        return Response(
+            {"message": f"✅ Event '{event.title}' approved and published."},
+            status=status.HTTP_200_OK
+        )
 
-class VenueViewSet(viewsets.ModelViewSet):
-    queryset = Venue.objects.all()
-    serializer_class = VenueSerializer
+    # --- Admin rejects event ---
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def reject(self, request, pk=None):
+        """Admin rejects an event submission."""
+        event = self.get_object()
+        event.status = 'rejected'
+        event.is_published = False
+        event.reviewed_by = request.user
+        event.reviewed_at = timezone.now()
+        event.save()
 
+        return Response(
+            {"message": f"❌ Event '{event.title}' rejected."},
+            status=status.HTTP_200_OK
+        )

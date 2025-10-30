@@ -192,4 +192,16 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Use the custom user model
-#AUTH_USER_MODEL = 'user_accounts.User'
+AUTH_USER_MODEL = 'user_accounts.User'
+
+# Django REST Framework configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
