@@ -176,6 +176,6 @@ The dashboard is fully responsive:
 
 ---
 
-**Created by:** Karma  
+**Created by:** TuxHood  
 **Date:** October 24, 2025  
 **Version:** 1.0
