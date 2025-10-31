@@ -11,6 +11,7 @@ import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import EventDiscovery from './pages/EventDiscovery'
 import EventAnalyticsDashboard from './pages/EventAnalyticsDashboard'
+import AttendeeList from './pages/AttendeeList'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/sign-up" element={<SignUpPage />} />
         <Route path="/events" element={<EventDiscovery />} />
+        <Route path="/events/:eventId/attendees" element={<AttendeeList />} />
       </Routes>
     </BrowserRouter>
   )
