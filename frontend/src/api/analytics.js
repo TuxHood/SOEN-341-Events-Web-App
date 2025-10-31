@@ -42,6 +42,10 @@ export const analyticsAPI = {
       method: 'GET',
     });
   },
+  getGlobalAnalytics: async () => {
+  const endpoint = `${API_BASE_URL}/analytics/global/`;
+  return await apiCall(endpoint, { method: 'GET' });
+  },
 };
 
 export default analyticsAPI;

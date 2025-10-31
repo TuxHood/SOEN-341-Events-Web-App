@@ -15,5 +15,13 @@ if (-Not (Test-Path -Path 'node_modules')) {
     npm install
 }
 
+# Ensure critical packages are present. If a dependency (like recharts) is missing,
+# install it explicitly so all developers get the same runtime behavior.
+$requiredPkgPath = Join-Path 'node_modules' 'recharts'
+if (-Not (Test-Path -Path $requiredPkgPath)) {
+    Write-Host "Detected missing package 'recharts' - installing..."
+    npm install recharts --save
+}
+
 Write-Host "Starting Vite dev server"
 npm run dev
