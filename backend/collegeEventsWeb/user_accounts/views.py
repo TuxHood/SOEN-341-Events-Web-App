@@ -1,14 +1,17 @@
-from rest_framework import status, permissions
+from rest_framework import status, permissions, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
-
+from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
+
+# -------------------------
+# JWT Helper
+# -------------------------
 def set_jwt_cookie(response, access_token, secure=False, samesite="Lax"):
-    # Set HttpOnly cookie with JWT access token
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -21,6 +24,9 @@ def set_jwt_cookie(response, access_token, secure=False, samesite="Lax"):
     return response
 
 
+# -------------------------
+# Authentication Views
+# -------------------------
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -40,13 +46,14 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
 
-        # Issue tokens
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
 
-        resp = Response({"user": UserSerializer(user).data, "token_type": "Bearer"}, status=status.HTTP_200_OK)
-        set_jwt_cookie(resp, access_token=access, secure=False, samesite="Lax")
-        # Optional: also return bearer in body if your frontend prefers Authorization header usage
+        resp = Response(
+            {"user": UserSerializer(user).data, "token_type": "Bearer"},
+            status=status.HTTP_200_OK
+        )
+        set_jwt_cookie(resp, access_token=access)
         resp.data["access"] = access
         resp.data["refresh"] = str(refresh)
         return resp
@@ -66,3 +73,43 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+# -------------------------
+# ADMIN: Organizer Approval
+# -------------------------
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    @action(detail=True, methods=['post'])
+    def approve_organizer(self, request, pk=None):
+        user = self.get_object()
+        if user.role == User.Role.ORGANIZER and user.status == User.Status.PENDING:
+            user.status = User.Status.ACTIVE
+            user.save()
+            return Response(
+                {"message": f"Organizer {user.name} approved."},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {"error": "User is not a pending organizer."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    @action(detail=True, methods=['post'])
+    def reject_organizer(self, request, pk=None):
+        user = self.get_object()
+        if user.role == User.Role.ORGANIZER and user.status == User.Status.PENDING:
+            user.status = User.Status.SUSPENDED
+            user.save()
+            return Response(
+                {"message": f"Organizer {user.name} rejected."},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {"error": "User is not a pending organizer."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
