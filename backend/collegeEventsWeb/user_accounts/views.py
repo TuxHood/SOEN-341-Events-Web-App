@@ -1,4 +1,5 @@
 from rest_framework import status, permissions, viewsets
+from rest_framework import status, permissions, serializers as drf_serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
@@ -43,7 +44,21 @@ class LoginView(APIView):
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except drf_serializers.ValidationError as exc:
+            # Normalize error shape to {'detail': '...'} so frontend shows a clean message
+            def extract_message(d):
+                if isinstance(d, dict):
+                    # prefer explicit 'detail' key, otherwise take the first value
+                    v = d.get('detail') if 'detail' in d else next(iter(d.values()), None)
+                    return extract_message(v)
+                if isinstance(d, (list, tuple)):
+                    return extract_message(d[0]) if d else None
+                return str(d)
+
+            message = extract_message(exc.detail)
+            return Response({'detail': message or 'Invalid request.'}, status=status.HTTP_400_BAD_REQUEST)
         user = serializer.validated_data["user"]
 
         refresh = RefreshToken.for_user(user)

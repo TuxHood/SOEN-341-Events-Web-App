@@ -2,6 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
+from django.http import HttpResponse
+import csv
 from .models import Event, Category, Venue
 from .serializers import EventSerializer, CategorySerializer, VenueSerializer
 
@@ -44,7 +46,86 @@ class EventViewSet(viewsets.ModelViewSet):
         }
         
         return Response(analytics_data)
+    
+    @action(detail=True, methods=['get'], url_path='attendees')
+    def attendees(self, request, pk=None):
+        """
+        Get list of all attendees for a specific event.
+        Returns ticket information including check-in status.
+        Only accessible to the event organizer.
+        """
+        event = self.get_object()
+        
+        # Security check: Only allow the organizer to view attendees
+        if request.user.is_authenticated and event.organizer.id != request.user.id:
+            if request.user.role != 'admin':
+                return Response(
+                    {'detail': 'You do not have permission to view attendees for this event.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Get all tickets for this event
+        tickets = event.tickets.select_related('owner').all()
+        
+        # Build the attendee list
+        attendee_list = []
+        for ticket in tickets:
+            attendee_list.append({
+                'ticket_id': str(ticket.id),
+                'name': ticket.owner.name,
+                'email': ticket.owner.email,
+                'is_checked_in': ticket.is_used,
+                'check_in_time': ticket.created_at if ticket.is_used else None,
+                'qr_code': ticket.qr_code,
+            })
+        
+        return Response({
+            'event_id': event.id,
+            'event_title': event.title,
+            'total_attendees': len(attendee_list),
+            'checked_in_count': sum(1 for a in attendee_list if a['is_checked_in']),
+            'attendees': attendee_list,
+        })
 
+    @action(detail=True, methods=['get'], url_path='attendees/export')
+    def export_attendees(self, request, pk=None):
+        """
+        Export attendee list as CSV file.
+        Only accessible to the event organizer.
+        """
+        event = self.get_object()
+        
+        # Security check: Only allow the organizer to export attendees
+        if request.user.is_authenticated and event.organizer.id != request.user.id:
+            if request.user.role != 'admin':
+                return Response(
+                    {'detail': 'You do not have permission to export attendees for this event.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Create the HttpResponse with CSV content type
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="attendees_{event.id}_{event.title.replace(" ", "_")}.csv"'
+        
+        # Create CSV writer
+        writer = csv.writer(response)
+        
+        # Write header row
+        writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time', 'QR Code'])
+        
+        # Get all tickets and write data rows
+        tickets = event.tickets.select_related('owner').all()
+        for ticket in tickets:
+            writer.writerow([
+                str(ticket.id),
+                ticket.owner.name,
+                ticket.owner.email,
+                'Checked In' if ticket.is_used else 'Not Checked In',
+                ticket.created_at if ticket.is_used else '',
+                ticket.qr_code,
+            ])
+        
+        return response
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer

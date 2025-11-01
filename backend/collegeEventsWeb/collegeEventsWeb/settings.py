@@ -191,5 +191,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5174",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
 # Use the custom user model
 AUTH_USER_MODEL = 'user_accounts.User'

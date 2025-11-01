@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS, apiCall } from '../api/config';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -7,33 +8,43 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Mock credentials for testing
-  const mockUsers = {
-    'admin@test.com': { password: 'admin123', role: 'admin', route: '/admin' },
-    'organizer@test.com': { password: 'org123', role: 'organizer', route: '/organizer' },
-    'student@test.com': { password: 'student123', role: 'student', route: '/events' }
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); // Clear any previous errors
-
-    // Check if user exists
-    const user = mockUsers[email];
-    
-    if (!user) {
-      setError('Invalid email or password');
+    // Basic client-side email format validation
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email');
       return;
     }
+    try {
+      const result = await apiCall(API_ENDPOINTS.login, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
 
-    // Check if password matches
-    if (user.password !== password) {
-      setError('Invalid email or password');
-      return;
+      if (!result.ok) {
+        // Show backend error message when available
+        const message = result.data && (result.data.detail || result.data.error || JSON.stringify(result.data));
+        setError(message || 'Invalid email or password');
+        return;
+      }
+
+      // Login success: store token and redirect based on role
+      const user = result.data.user;
+      // Store access token for API use (frontend may also read cookie set by backend)
+      if (result.data.access) {
+        localStorage.setItem('access_token', result.data.access);
+      }
+
+      if (user.role === 'admin') navigate('/admin');
+      else if (user.role === 'organizer') navigate('/organizer');
+      else navigate('/events');
+
+    } catch (err) {
+      console.error('Login error', err);
+      setError('Network error. Please check your connection and try again.');
     }
-
-    // Redirect based on role
-    navigate(user.route);
   };
 
   return (
@@ -61,7 +72,7 @@ export default function LoginPage() {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+  <form noValidate onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label htmlFor="email-address" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--foreground)' }}>
@@ -74,7 +85,18 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // clear client-side email validation message while typing
+                  if (error === 'Please enter a valid email') setError('');
+                }}
+                onBlur={() => {
+                  // validate on blur to provide immediate feedback without native tooltip
+                  const emailRegex = /\S+@\S+\.\S+/;
+                  if (email && !emailRegex.test(email)) {
+                    setError('Please enter a valid email');
+                  }
+                }}
                 style={{ 
                   width: '100%', 
                   padding: '0.625rem 0.875rem', 
@@ -97,7 +119,11 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  // clear validation error when user starts typing
+                  if (error) setError('');
+                }}
                 style={{ 
                   width: '100%', 
                   padding: '0.625rem 0.875rem', 
@@ -120,13 +146,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Test Credentials Helper */}
-        <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-          <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#1e40af', marginBottom: '0.5rem' }}>Test Credentials:</p>
-          <p style={{ fontSize: '0.75rem', color: '#1e3a8a', margin: '0.25rem 0' }}>Admin: admin@test.com / admin123</p>
-          <p style={{ fontSize: '0.75rem', color: '#1e3a8a', margin: '0.25rem 0' }}>Organizer: organizer@test.com / org123</p>
-          <p style={{ fontSize: '0.75rem', color: '#1e3a8a', margin: '0.25rem 0' }}>Student: student@test.com / student123</p>
-        </div>
+        {/* Test credentials removed for production-like behavior */}
       </div>
     </div>
   );

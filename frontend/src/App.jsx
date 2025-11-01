@@ -11,6 +11,7 @@ import SignUpPage from './pages/SignUpPage'
 import EventDiscovery from './pages/EventDiscovery'
 import EventAnalyticsDashboard from './pages/EventAnalyticsDashboard'
 import OrganizerApproval from './pages/OrganizerApproval'
+import AttendeeList from './pages/AttendeeList'
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path="/auth/sign-up" element={<SignUpPage />} />
         <Route path="/events" element={<EventDiscovery />} />
         <Route path="/admin/organizer-approval" element={<OrganizerApproval />} />
+        <Route path="/events/:eventId/attendees" element={<AttendeeList />} />
       </Routes>
     </BrowserRouter>
   )
