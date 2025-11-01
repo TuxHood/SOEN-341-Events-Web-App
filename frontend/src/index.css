@@ -1,7 +1,9 @@
 /* Adapted globals from your screenshot project (converted to plain CSS so Tailwind isn't required).
    This exposes the same theme variables and base styles used in your provided globals.css.
 */
-
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 /* Theme variables (light defaults) */
 :root {
   --background: oklch(1 0 0);

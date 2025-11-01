@@ -56,6 +56,7 @@ class EventViewSet(viewsets.ModelViewSet):
         """
         event = self.get_object()
         
+        # Security check: Only allow the organizer to view attendees
         if request.user.is_authenticated and event.organizer.id != request.user.id:
             if request.user.role != 'admin':
                 return Response(
@@ -65,6 +66,10 @@ class EventViewSet(viewsets.ModelViewSet):
         
         tickets = event.tickets.select_related('owner').all()
         
+        # Get all tickets for this event
+        tickets = event.tickets.select_related('owner').all()
+        
+        # Build the attendee list
         attendee_list = []
         for ticket in tickets:
             attendee_list.append({
@@ -149,6 +154,45 @@ class EventViewSet(viewsets.ModelViewSet):
         )
 
 
+    @action(detail=True, methods=['get'], url_path='attendees/export')
+    def export_attendees(self, request, pk=None):
+        """
+        Export attendee list as CSV file.
+        Only accessible to the event organizer.
+        """
+        event = self.get_object()
+        
+        # Security check: Only allow the organizer to export attendees
+        if request.user.is_authenticated and event.organizer.id != request.user.id:
+            if request.user.role != 'admin':
+                return Response(
+                    {'detail': 'You do not have permission to export attendees for this event.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Create the HttpResponse with CSV content type
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="attendees_{event.id}_{event.title.replace(" ", "_")}.csv"'
+        
+        # Create CSV writer
+        writer = csv.writer(response)
+        
+        # Write header row
+        writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time', 'QR Code'])
+        
+        # Get all tickets and write data rows
+        tickets = event.tickets.select_related('owner').all()
+        for ticket in tickets:
+            writer.writerow([
+                str(ticket.id),
+                ticket.owner.name,
+                ticket.owner.email,
+                'Checked In' if ticket.is_used else 'Not Checked In',
+                ticket.created_at if ticket.is_used else '',
+                ticket.qr_code,
+            ])
+        
+        return response
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
