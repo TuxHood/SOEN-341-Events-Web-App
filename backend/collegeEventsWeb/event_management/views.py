@@ -28,7 +28,7 @@ class EventViewSet(viewsets.ModelViewSet):
         event.save()
 
         return Response(
-            {"message": f"✅ Event '{event.title}' approved and published."},
+            {"message": f" Event '{event.title}' approved and published."},
             status=status.HTTP_200_OK
         )
 
@@ -44,6 +44,6 @@ class EventViewSet(viewsets.ModelViewSet):
         event.save()
 
         return Response(
-            {"message": f"❌ Event '{event.title}' rejected."},
+            {"message": f" Event '{event.title}' rejected."},
             status=status.HTTP_200_OK
         )
