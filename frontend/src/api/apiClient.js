@@ -13,7 +13,7 @@ const api = axios.create({
 });
 
 // Attach Authorization header from localStorage if access token is present.
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   try {
     const token = localStorage.getItem('access_token');
     if (token && !config.headers?.Authorization) {
@@ -23,7 +23,9 @@ api.interceptors.request.use((config) => {
   } catch (err) {
     // ignore localStorage errors (e.g., in some privacy modes)
   }
-  // Attach CSRF token for unsafe methods from cookie
+
+  // Attach CSRF token for unsafe methods from cookie. If missing, attempt to
+  // fetch it from the backend helper endpoint so the cookie is set first.
   try {
     function getCookie(name) {
       const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -31,14 +33,24 @@ api.interceptors.request.use((config) => {
     }
     const method = (config.method || 'get').toUpperCase();
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-      const csrftoken = getCookie('csrftoken');
+      let csrftoken = getCookie('csrftoken');
+      if (!csrftoken) {
+        try {
+          // Use window.fetch directly to avoid interceptor recursion
+          await fetch('/api/csrf/', { method: 'GET', credentials: 'include' });
+          csrftoken = getCookie('csrftoken');
+        } catch (e) {
+          // ignore — proceed and let the request fail if CSRF required
+        }
+      }
       if (csrftoken && !config.headers['X-CSRFToken'] && !config.headers['X-CSRF-Token']) {
         config.headers['X-CSRFToken'] = csrftoken;
       }
     }
   } catch (err) {
-    // ignore cookie errors
+    // ignore cookie/read errors
   }
+
   return config;
 });
 

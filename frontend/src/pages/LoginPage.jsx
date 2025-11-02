@@ -21,7 +21,9 @@ export default function LoginPage() {
     try {
       // Ensure csrf cookie is present (dev helper) before POSTing
       try {
-        await apiCall('/api/csrf/', { method: 'GET' });
+        // Use the axios instance which sets withCredentials so the cookie is
+        // correctly stored by the browser behind the Vite proxy.
+        await api.get('/csrf/');
       } catch (e) {
         // ignore; if csrf endpoint isn't reachable the login may still work
       }

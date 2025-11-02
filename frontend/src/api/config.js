@@ -37,11 +37,21 @@ export async function apiCall(endpoint, options = {}) {
       const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
       return match ? decodeURIComponent(match[2]) : null;
     }
-    // For unsafe methods, include X-CSRFToken header if cookie is present
+    // For unsafe methods, ensure csrftoken exists and include X-CSRFToken header
     const method = (options.method || 'GET').toUpperCase();
     const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method);
     if (unsafe) {
-      const csrftoken = getCookie('csrftoken');
+      let csrftoken = getCookie('csrftoken');
+      // If no csrftoken present, call the dev helper to set it (with credentials)
+      if (!csrftoken) {
+        try {
+          // call the backend helper to set csrftoken cookie via proxy
+          await fetch('/api/csrf/', { method: 'GET', credentials: 'include' });
+          csrftoken = getCookie('csrftoken');
+        } catch (e) {
+          // ignore — we'll continue and let the request fail with CSRF if necessary
+        }
+      }
       if (csrftoken && !reqHeaders['X-CSRFToken'] && !reqHeaders['X-CSRF-Token']) {
         reqHeaders['X-CSRFToken'] = csrftoken;
       }

@@ -22,6 +22,10 @@ OPEN_PATHS = [
     "/admin",
 ]
 
+# Ensure the CSRF helper is accessible without requiring auth so it can set the
+# `csrftoken` cookie for SPA clients.
+OPEN_PATHS.append('/api/csrf')
+
 class RoleAuthorizationMiddleware:
     """
     Enforces:
