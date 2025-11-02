@@ -1,0 +1,23 @@
+/* Re-uses your “buy-*” styles so the card matches the earlier page */
+.buy-wrap {
+  display: flex; justify-content: center; padding: 24px;
+}
+.buy-card {
+  width: 960px; background: #fff7f8; border-radius: 18px;
+  padding: 24px; box-shadow: 0 8px 28px rgba(0,0,0,.06);
+}
+.buy-title { font-size: 28px; margin: 0 0 6px; }
+.ticket-emoji { font-size: 22px; vertical-align: middle; }
+.buy-sub { color: #666; margin: 0 0 18px; }
+.buy-grid { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+.buy-left .buy-label { font-weight: 600; margin-right: 6px; }
+.event-name { margin: 0 0 8px; }
+
+.qr-panel {
+  background: #fff; border: 1px solid #e6e6e6; border-radius: 12px;
+  padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.qr-loading { color: #666; height: 256px; display: flex; align-items: center; }
+.qr-link { margin-top: 10px; font-size: 12px; text-decoration: underline; color: #3756f0; }
+
+.ticket-id { margin-top: 10px; font-size: 12px; color: #666; }

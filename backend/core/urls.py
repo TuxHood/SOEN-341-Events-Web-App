@@ -16,10 +16,26 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from django.views.generic import RedirectView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from collegeEventsWeb.event_management.views import MyTicketsList
+
 
 urlpatterns = [
-    # include the collegeEventsWeb project's URL configuration so API routes
-    # (for example /api/events/) are available when using the top-level
-    # manage.py which points to core.settings
-    path('', include('collegeEventsWeb.collegeEventsWeb.urls')),
+    path('admin/', admin.site.urls),
+    path('', RedirectView.as_view(url='/admin/', permanent=False)),
+    path('api/', include('collegeEventsWeb.event_management.urls')),
+    path('api/', include('collegeEventsWeb.ticket_services.urls')),
+    path('api/', include('collegeEventsWeb.user_accounts.urls')),
+    path("api/me/tickets/", MyTicketsList.as_view(), name="my-tickets"),
+    path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
+
+# serve media in dev (for QR images, etc.)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

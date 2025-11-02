@@ -193,3 +193,16 @@ CORS_ALLOWED_ORIGINS = [
 
 # Use the custom user model
 AUTH_USER_MODEL = 'user_accounts.User'
+
+REST_FRAMEWORK = {
+    "DATETIME_FORMAT": "iso-8601",
+    "DATETIME_INPUT_FORMATS": ["iso-8601"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ]
+}
+
+
+MEDIA_URL = "/media/"
+from pathlib import Path
+MEDIA_ROOT = BASE_DIR / "media"

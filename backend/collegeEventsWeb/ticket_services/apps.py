@@ -3,4 +3,5 @@ from django.apps import AppConfig
 
 class TicketServicesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'ticket_services'
+    name = 'collegeEventsWeb.ticket_services' 
+    label = 'ticket_services'

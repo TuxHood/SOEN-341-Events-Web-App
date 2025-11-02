@@ -194,7 +194,6 @@ DATABASES = {
     }
 }
 
-CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -231,5 +230,12 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SAMESITE": "Lax",  # "None" if cross-site + HTTPS
 }
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+WSGI_APPLICATION = "core.wsgi.application"
+
+
 # Custom user model for RBAC
-AUTH_USER_MODEL = "collegeEventsWeb.user_accounts.User"
+# AUTH_USER_MODEL = "collegeEventsWeb.user_accounts.User"
