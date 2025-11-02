@@ -15,24 +15,14 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='analytics')
     def analytics(self, request, pk=None):
-        """
-        Get analytics data for a specific event:
-        - Total tickets issued
-        - Tickets checked in (attendance)
-        - Venue capacity
-        - Remaining capacity
-        - Check-in percentage
-        """
         event = self.get_object()
-        
         total_tickets = event.tickets.count()
         checked_in = event.tickets.filter(is_used=True).count()
         venue_capacity = event.venue.capacity
         remaining_capacity = venue_capacity - total_tickets
-        
         check_in_percentage = (checked_in / total_tickets * 100) if total_tickets > 0 else 0
         capacity_utilization = (total_tickets / venue_capacity * 100) if venue_capacity > 0 else 0
-        
+
         analytics_data = {
             'event_id': event.id,
             'event_title': event.title,
@@ -44,43 +34,26 @@ class EventViewSet(viewsets.ModelViewSet):
             'check_in_percentage': round(check_in_percentage, 2),
             'capacity_utilization': round(capacity_utilization, 2),
         }
-        
         return Response(analytics_data)
-    
+
     @action(detail=True, methods=['get'], url_path='attendees')
     def attendees(self, request, pk=None):
-        """
-        Get list of all attendees for a specific event.
-        Returns ticket information including check-in status.
-        Only accessible to the event organizer.
-        """
         event = self.get_object()
-        
-        # Security check: Only allow the organizer to view attendees
         if request.user.is_authenticated and event.organizer.id != request.user.id:
             if request.user.role != 'admin':
-                return Response(
-                    {'detail': 'You do not have permission to view attendees for this event.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
+                return Response({'detail': 'You do not have permission to view attendees for this event.'},
+                                status=status.HTTP_403_FORBIDDEN)
+
         tickets = event.tickets.select_related('owner').all()
-        
-        # Get all tickets for this event
-        tickets = event.tickets.select_related('owner').all()
-        
-        # Build the attendee list
-        attendee_list = []
-        for ticket in tickets:
-            attendee_list.append({
-                'ticket_id': str(ticket.id),
-                'name': ticket.owner.name,
-                'email': ticket.owner.email,
-                'is_checked_in': ticket.is_used,
-                'check_in_time': ticket.created_at if ticket.is_used else None,
-                'qr_code': ticket.qr_code,
-            })
-        
+        attendee_list = [{
+            'ticket_id': str(ticket.id),
+            'name': ticket.owner.name,
+            'email': ticket.owner.email,
+            'is_checked_in': ticket.is_used,
+            'check_in_time': ticket.created_at if ticket.is_used else None,
+            'qr_code': ticket.qr_code,
+        } for ticket in tickets]
+
         return Response({
             'event_id': event.id,
             'event_title': event.title,
@@ -91,25 +64,17 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='attendees/export')
     def export_attendees(self, request, pk=None):
-        """
-        Export attendee list as CSV file.
-        Only accessible to the event organizer.
-        """
         event = self.get_object()
-        
         if request.user.is_authenticated and event.organizer.id != request.user.id:
             if request.user.role != 'admin':
-                return Response(
-                    {'detail': 'You do not have permission to export attendees for this event.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
+                return Response({'detail': 'You do not have permission to export attendees for this event.'},
+                                status=status.HTTP_403_FORBIDDEN)
+
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="attendees_{event.id}_{event.title.replace(" ", "_")}.csv"'
-        
         writer = csv.writer(response)
         writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time', 'QR Code'])
-        
+
         tickets = event.tickets.select_related('owner').all()
         for ticket in tickets:
             writer.writerow([
@@ -120,79 +85,51 @@ class EventViewSet(viewsets.ModelViewSet):
                 ticket.created_at if ticket.is_used else '',
                 ticket.qr_code,
             ])
-        
         return response
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
-    def approve(self, request, pk=None):
-        """Admin approves and publishes an event."""
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve_event(self, request, pk=None):
         event = self.get_object()
-        event.status = 'approved'
+        if not request.user.is_staff:
+            return Response({'detail': 'Only admins can approve events.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        event.status = 'Approved'
         event.is_published = True
         event.reviewed_by = request.user
         event.reviewed_at = timezone.now()
         event.save()
 
-        return Response(
-            {"message": f"Event '{event.title}' approved and published."},
-            status=status.HTTP_200_OK
-        )
+        return Response({
+            'message': f"Event '{event.title}' approved.",
+            'status': event.status,
+            'is_published': event.is_published,
+            'reviewed_by': event.reviewed_by.email if event.reviewed_by else None,
+            'reviewed_at': event.reviewed_at
+        }, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
-    def reject(self, request, pk=None):
-        """Admin rejects an event submission."""
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject_event(self, request, pk=None):
         event = self.get_object()
-        event.status = 'rejected'
+        if not request.user.is_staff:
+            return Response({'detail': 'Only admins can reject events.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        event.status = 'Rejected'
         event.is_published = False
         event.reviewed_by = request.user
         event.reviewed_at = timezone.now()
         event.save()
 
-        return Response(
-            {"message": f"Event '{event.title}' rejected."},
-            status=status.HTTP_200_OK
-        )
+        return Response({
+            'message': f"Event '{event.title}' rejected.",
+            'status': event.status,
+            'is_published': event.is_published,
+            'reviewed_by': event.reviewed_by.email if event.reviewed_by else None,
+            'reviewed_at': event.reviewed_at
+        }, status=status.HTTP_200_OK)
 
 
-    @action(detail=True, methods=['get'], url_path='attendees/export')
-    def export_attendees(self, request, pk=None):
-        """
-        Export attendee list as CSV file.
-        Only accessible to the event organizer.
-        """
-        event = self.get_object()
-        
-        # Security check: Only allow the organizer to export attendees
-        if request.user.is_authenticated and event.organizer.id != request.user.id:
-            if request.user.role != 'admin':
-                return Response(
-                    {'detail': 'You do not have permission to export attendees for this event.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
-        # Create the HttpResponse with CSV content type
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="attendees_{event.id}_{event.title.replace(" ", "_")}.csv"'
-        
-        # Create CSV writer
-        writer = csv.writer(response)
-        
-        # Write header row
-        writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time', 'QR Code'])
-        
-        # Get all tickets and write data rows
-        tickets = event.tickets.select_related('owner').all()
-        for ticket in tickets:
-            writer.writerow([
-                str(ticket.id),
-                ticket.owner.name,
-                ticket.owner.email,
-                'Checked In' if ticket.is_used else 'Not Checked In',
-                ticket.created_at if ticket.is_used else '',
-                ticket.qr_code,
-            ])
-        
-        return response
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -201,4 +138,3 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class VenueViewSet(viewsets.ModelViewSet):
     queryset = Venue.objects.all()
     serializer_class = VenueSerializer
-

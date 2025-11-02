@@ -1,5 +1,7 @@
 from django.db import models
+from django.utils import timezone
 from user_accounts.models import User
+
 
 class Category(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -39,6 +41,13 @@ class Event(models.Model):
 
     # Other
     is_published = models.BooleanField(default=False)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    reviewed_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name='reviewed_events'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
