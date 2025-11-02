@@ -1,25 +1,26 @@
 # backend/event_management/views.py
+import csv
 import qrcode
 from io import BytesIO
 
 from django.core.exceptions import FieldDoesNotExist
 from django.core.files.base import ContentFile
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
-from rest_framework import viewsets, status, permissions, generics
+from django.utils.timezone import now
+
+from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.utils.timezone import now
 
-from .models import Event, Category, Venue, Ticket            # ✅ use local Ticket
+from .models import Event, Category, Venue, Ticket
 from .serializers import (
     EventSerializer, CategorySerializer, VenueSerializer, TicketSerializer
 )
 
 # ---------- helpers to tolerate either start_at/start_time and end_at/end_time ----------
-
 def _has_field(model, name: str) -> bool:
     try:
         model._meta.get_field(name)
@@ -33,9 +34,7 @@ def _first_existing_field(model, *candidates):
             return c
     return None
 
-
 # ----------------- Events / Categories / Venues -----------------
-
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
@@ -60,19 +59,103 @@ class EventViewSet(viewsets.ModelViewSet):
         order_field = start_field or "id"
         return qs.order_by(order_field)
 
+    @action(detail=True, methods=['get'], url_path='analytics')
+    def analytics(self, request, pk=None):
+        """
+        Event analytics (kept from main)
+        """
+        event = self.get_object()
+        total_tickets = event.tickets.count()
+        checked_in = event.tickets.filter(is_used=True).count()
+        venue_capacity = event.venue.capacity
+        remaining_capacity = venue_capacity - total_tickets
+
+        check_in_percentage = (checked_in / total_tickets * 100) if total_tickets > 0 else 0
+        capacity_utilization = (total_tickets / venue_capacity * 100) if venue_capacity > 0 else 0
+
+        return Response({
+            'event_id': event.id,
+            'event_title': event.title,
+            'tickets_issued': total_tickets,
+            'tickets_checked_in': checked_in,
+            'tickets_pending': total_tickets - checked_in,
+            'venue_capacity': venue_capacity,
+            'remaining_capacity': remaining_capacity,
+            'check_in_percentage': round(check_in_percentage, 2),
+            'capacity_utilization': round(capacity_utilization, 2),
+        })
+
+    @action(detail=True, methods=['get'], url_path='attendees')
+    def attendees(self, request, pk=None):
+        """
+        Organizer-only attendee list (from main)
+        """
+        event = self.get_object()
+
+        if request.user.is_authenticated and getattr(event, "organizer_id", None) != request.user.id:
+            if getattr(request.user, "role", "") != 'admin':
+                return Response(
+                    {'detail': 'You do not have permission to view attendees for this event.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        tickets = event.tickets.select_related('owner').all()
+        attendee_list = [{
+            'ticket_id': str(t.id),
+            'name': getattr(t.owner, "name", ""),
+            'email': getattr(t.owner, "email", ""),
+            'is_checked_in': t.is_used,
+            'check_in_time': t.created_at if t.is_used else None,
+            'qr_code': getattr(t, "qr_code", None),
+        } for t in tickets]
+
+        return Response({
+            'event_id': event.id,
+            'event_title': event.title,
+            'total_attendees': len(attendee_list),
+            'checked_in_count': sum(1 for a in attendee_list if a['is_checked_in']),
+            'attendees': attendee_list,
+        })
+
+    @action(detail=True, methods=['get'], url_path='attendees/export')
+    def export_attendees(self, request, pk=None):
+        """
+        Organizer-only CSV export
+        """
+        event = self.get_object()
+
+        if request.user.is_authenticated and getattr(event, "organizer_id", None) != request.user.id:
+            if getattr(request.user, "role", "") != 'admin':
+                return Response(
+                    {'detail': 'You do not have permission to export attendees for this event.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="attendees_{event.id}_{event.title.replace(" ", "_")}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time', 'QR Code'])
+
+        for t in event.tickets.select_related('owner').all():
+            writer.writerow([
+                str(t.id),
+                getattr(t.owner, "name", ""),
+                getattr(t.owner, "email", ""),
+                'Checked In' if t.is_used else 'Not Checked In',
+                t.created_at if t.is_used else '',
+                getattr(t, "qr_code", ""),
+            ])
+        return response
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
-
 class VenueViewSet(viewsets.ModelViewSet):
     queryset = Venue.objects.all()
     serializer_class = VenueSerializer
 
-
 # ----------------- Tickets for current user -----------------
-
 class TicketViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Optional: /api/tickets/ for current user.
@@ -82,10 +165,9 @@ class TicketViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # ✅ use user consistently
         return (Ticket.objects
                 .select_related("event")
-                .filter(owner=self.request.user)
+                .filter(owner=self.request.user)   # adjust to .filter(user=...) if your model uses 'user'
                 .order_by("-created_at"))
 
     def get_serializer_context(self):
@@ -93,9 +175,7 @@ class TicketViewSet(viewsets.ReadOnlyModelViewSet):
         ctx["request"] = self.request
         return ctx
 
-
 # ----------------- Auth / Profile -----------------
-
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -109,26 +189,23 @@ def me(request):
         "role": getattr(u, "role", "student"),
     })
 
-
 # ----------------- Buy / My tickets / Ticket for event -----------------
-
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def buy_ticket(request, event_id: int):
     """
-    POST /api/events/<event_id>/buy/
-    One ticket per user per event.
+    POST /api/events/<event_id>/buy/ — one ticket per user per event.
     """
     event = get_object_or_404(Event, pk=event_id)
     user = request.user
 
-    if Ticket.objects.filter(event=event, owner=user).exists():     # ✅ user
+    if Ticket.objects.filter(event=event, owner=user).exists():  # adjust if model uses 'user'
         return Response({"detail": "You already have a ticket for this event."}, status=400)
 
     ticket = Ticket.objects.create(event=event, owner=user)
 
-    # If you have a File/ImageField named 'qr', save PNG there (optional)
+    # Optional: save PNG to a File/ImageField named 'qr'
     if hasattr(ticket, "qr"):
         qr_img = qrcode.make(str(ticket.id))
         buf = BytesIO()
@@ -143,27 +220,22 @@ def buy_ticket(request, event_id: int):
         "qr_png_url": (ticket.qr.url if hasattr(ticket, "qr") and ticket.qr else None),
     }, status=201)
 
-
 class MyTicketsList(generics.ListAPIView):
     """
-    If you’re using this class-based view instead of the function below,
-    make sure your urls.py points /api/me/tickets/ here.
+    /api/me/tickets/ — current user's tickets
     """
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = TicketSerializer
 
     def get_queryset(self):
-        return (
-            Ticket.objects
-            .filter(owner=self.request.user)
-            .select_related("event")
-            .order_by("-event__start_time", "-id")   
-        )
+        return (Ticket.objects
+                .filter(owner=self.request.user)   # adjust if model uses 'user'
+                .select_related("event")
+                .order_by("-event__start_time", "-id"))
 
     def get_serializer_context(self):
         return {"request": self.request}
-
 
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
@@ -174,7 +246,7 @@ def get_ticket_for_event(request, event_id: int):
     """
     event = get_object_or_404(Event, pk=event_id)
     ticket = (Ticket.objects
-              .filter(event=event, owner=request.user)           
+              .filter(event=event, owner=request.user)   # adjust if model uses 'user'
               .select_related("event")
               .first())
     if not ticket:
@@ -188,23 +260,15 @@ def get_ticket_for_event(request, event_id: int):
         "qr_png_url": (ticket.qr.url if hasattr(ticket, "qr") and ticket.qr else None),
     })
 
-
-@api_view(["GET"])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def my_tickets(request):
-   
-    qs = Ticket.objects.filter(owner=request.user).select_related("event")     # ✅ user
-    ser = TicketSerializer(qs, many=True, context={"request": request})       # ✅ context for absolute image URLs
-    return Response(ser.data)
-
-
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def cancel_ticket(request, event_id):          # use event_id: int; if Event.id is UUID, change to event_id
-    get_object_or_404(Event, pk=event_id)      # ensure event exists
-    ticket = Ticket.objects.filter(event_id=event_id, owner=request.user).first()
+def cancel_ticket(request, event_id: int):
+    """
+    POST /api/events/<event_id>/cancel/
+    """
+    get_object_or_404(Event, pk=event_id)  # ensure event exists
+    ticket = Ticket.objects.filter(event_id=event_id, owner=request.user).first()  # adjust if model uses 'user'
     if not ticket:
         return Response({"detail": "No ticket for this event."}, status=404)
     ticket.delete()
