@@ -42,6 +42,17 @@ class RoleAuthorizationMiddleware:
             return self.get_response(request)
 
         # Try to authenticate via cookie or header
+        # If an 'access_token' cookie is present, copy it to the Authorization header
+        # so DRF's JWTAuthentication (which reads HTTP_AUTHORIZATION) can authenticate.
+        try:
+            if 'HTTP_AUTHORIZATION' not in request.META:
+                token = request.COOKIES.get('access_token')
+                if token:
+                    request.META['HTTP_AUTHORIZATION'] = f'Bearer {token}'
+        except Exception:
+            # ignore cookie reading errors
+            pass
+
         request.user = getattr(request, "user", None)
         try:
             header_user_auth = self.jwt_auth.authenticate(request)

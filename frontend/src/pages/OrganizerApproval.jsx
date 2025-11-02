@@ -4,33 +4,64 @@ import api from "../api/apiClient";
 export default function AdminOrganizerApproval() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [actionLoading, setActionLoading] = useState({});
+  const [actionError, setActionError] = useState({});
+  const [actionSuccess, setActionSuccess] = useState({});
 
   const fetchUsers = async () => {
     try {
-      const res = await api.get("/api/users/");
-      setUsers(res.data);
+  const res = await api.get("/users/");
+      // Prefer known shapes from the backend when available
+      const payload = res.data;
+      if (Array.isArray(payload)) setUsers(payload);
+      else if (payload && typeof payload === 'object') setUsers(payload.users ?? payload.results ?? payload);
+      else setUsers([]);
+      setError(null);
     } catch (err) {
       console.error("Error fetching users:", err);
+      // surface a user-friendly error message (include status if available)
+      const status = err.response?.status;
+      const message = err.response?.data?.detail || err.message || 'Failed to fetch users.';
+      setError(status ? `${status} - ${message}` : message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleApprove = async (id) => {
+    setActionLoading((s) => ({ ...s, [id]: true }));
+    setActionError((s) => ({ ...s, [id]: null }));
+    setActionSuccess((s) => ({ ...s, [id]: null }));
     try {
-      await api.post(`/api/users/${id}/approve_organizer/`);
-      fetchUsers();
+      const res = await api.post(`/users/${id}/approve_organizer/`);
+      console.debug('Approve response', res);
+      setActionSuccess((s) => ({ ...s, [id]: 'approved' }));
+      await fetchUsers();
     } catch (err) {
       console.error("Approve error:", err);
+      const message = err.response?.data?.detail || err.response?.data || err.message || 'Approve failed';
+      setActionError((s) => ({ ...s, [id]: String(message) }));
+    } finally {
+      setActionLoading((s) => ({ ...s, [id]: false }));
     }
   };
 
   const handleReject = async (id) => {
+    setActionLoading((s) => ({ ...s, [id]: true }));
+    setActionError((s) => ({ ...s, [id]: null }));
+    setActionSuccess((s) => ({ ...s, [id]: null }));
     try {
-      await api.post(`/api/users/${id}/reject_organizer/`);
-      fetchUsers();
+      const res = await api.post(`/users/${id}/reject_organizer/`);
+      console.debug('Reject response', res);
+      setActionSuccess((s) => ({ ...s, [id]: 'rejected' }));
+      await fetchUsers();
     } catch (err) {
       console.error("Reject error:", err);
+      const message = err.response?.data?.detail || err.response?.data || err.message || 'Reject failed';
+      setActionError((s) => ({ ...s, [id]: String(message) }));
+    } finally {
+      setActionLoading((s) => ({ ...s, [id]: false }));
     }
   };
 
@@ -46,6 +77,16 @@ export default function AdminOrganizerApproval() {
     );
   }
 
+  // Ensure we always map over an array. Some API responses return an object
+  // like { users: [...] } or { results: [...] } so normalize here.
+  const usersArray = Array.isArray(users)
+    ? users
+    : users && typeof users === 'object'
+    ? users.users ?? users.results ?? []
+    : [];
+
+  console.debug('[debug] OrganizerApproval users', usersArray);
+
   return (
     <div style={{ minHeight: "100vh", background: "#f9fafb", paddingBottom: "60px" }}>
       <div style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "40px 24px" }}>
@@ -60,11 +101,17 @@ export default function AdminOrganizerApproval() {
       </div>
 
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 24px" }}>
-        {users.length === 0 ? (
+        {error ? (
+          <div style={{ textAlign: 'center', color: '#ef4444' }}>
+            <p style={{ fontWeight: 600 }}>Error loading users</p>
+            <p>{error}</p>
+            <p style={{ color: '#6b7280' }}>Make sure you're signed in as an admin.</p>
+          </div>
+        ) : usersArray.length === 0 ? (
           <p style={{ textAlign: "center", color: "#6b7280" }}>No users found.</p>
         ) : (
           <div style={{ display: "grid", gap: "24px" }}>
-            {users.map((user) => (
+            {usersArray.map((user) => (
               <div
                 key={user.id}
                 style={{
@@ -110,10 +157,12 @@ export default function AdminOrganizerApproval() {
                         border: "none",
                         padding: "10px 20px",
                         borderRadius: "8px",
-                        cursor: "pointer"
+                        cursor: actionLoading[user.id] ? 'wait' : 'pointer',
+                        opacity: actionLoading[user.id] ? 0.7 : 1,
                       }}
+                      disabled={!!actionLoading[user.id]}
                     >
-                      Approve
+                      {actionLoading[user.id] ? 'Working…' : 'Approve'}
                     </button>
                     <button
                       onClick={() => handleReject(user.id)}
@@ -123,12 +172,20 @@ export default function AdminOrganizerApproval() {
                         border: "none",
                         padding: "10px 20px",
                         borderRadius: "8px",
-                        cursor: "pointer"
+                        cursor: actionLoading[user.id] ? 'wait' : 'pointer',
+                        opacity: actionLoading[user.id] ? 0.7 : 1,
                       }}
+                      disabled={!!actionLoading[user.id]}
                     >
-                      Reject
+                      {actionLoading[user.id] ? 'Working…' : 'Reject'}
                     </button>
                   </div>
+                )}
+                {actionError[user.id] && (
+                  <div style={{ marginTop: 8, color: '#b91c1c', fontWeight: 600 }}>{actionError[user.id]}</div>
+                )}
+                {actionSuccess[user.id] && (
+                  <div style={{ marginTop: 8, color: '#065f46', fontWeight: 600 }}>User {actionSuccess[user.id]}</div>
                 )}
               </div>
             ))}

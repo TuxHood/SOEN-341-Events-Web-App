@@ -14,6 +14,8 @@ import OrganizerApproval from './pages/OrganizerApproval'
 import AttendeeList from './pages/AttendeeList'
 
 function App() {
+  // Debug helper visible in browser console to confirm React render begins
+  console.log('[debug] App render start')
   return (
     <BrowserRouter>
       <nav style={{ padding: 10, borderBottom: '1px solid #ddd', textAlign: 'center' }}>

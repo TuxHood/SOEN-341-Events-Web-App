@@ -4,9 +4,51 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+
+
+class DebugAuthView(APIView):
+    """Dev-only: return auth debug info so frontend can diagnose token/cookie issues."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        info = {
+            'http_authorization': request.META.get('HTTP_AUTHORIZATION'),
+            'cookies': {k: request.COOKIES.get(k) for k in ['access_token', 'csrftoken']},
+            'user_is_authenticated': getattr(request.user, 'is_authenticated', False),
+            'user_id': getattr(getattr(request, 'user', None), 'id', None),
+        }
+        # Try to authenticate via simplejwt directly
+        try:
+            jwt = JWTAuthentication()
+            auth = jwt.authenticate(request)
+            info['jwt_authenticate'] = bool(auth)
+            if auth:
+                user, token = auth
+                info['jwt_user_id'] = user.id
+        except Exception as e:
+            info['jwt_error'] = str(e)
+
+        return Response(info)
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class GetCSRFTokenView(APIView):
+    """Dev helper: ensure the CSRF cookie is set for the frontend.
+
+    Call this with GET (with credentials) before making POSTs from the SPA so
+    the browser receives a `csrftoken` cookie and can include it in the
+    X-CSRFToken header. This is safer than exempting views from CSRF.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({"detail": "CSRF cookie set"})
 
 
 # -------------------------
