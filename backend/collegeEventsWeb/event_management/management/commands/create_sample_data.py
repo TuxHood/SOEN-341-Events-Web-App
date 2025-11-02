@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
-from event_management.models import Event, Venue, Category
-from ticket_services.models import Ticket
+from ...models import Event, Venue, Category
+from ..ticket_services.models import Ticket
 from user_accounts.models import User
 
 
