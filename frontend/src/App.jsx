@@ -48,12 +48,13 @@ import './App.css'
 import Home from './pages/Home'
 import EventDetail from './pages/EventDetail'
 import OrganizerDashboard from './pages/OrganizerDashboard'
-import AdminDashboard from './pages/AdminDashboard'
+// import AdminDashboard from './pages/AdminDashboard'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import EventDiscovery from './pages/EventDiscovery'
 import EventAnalyticsDashboard from './pages/EventAnalyticsDashboard'
 import AttendeeList from './pages/AttendeeList'
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 // Student dashboard pages (NO GUARDS for now)
 import StudentLayout from './pages/student/StudentLayout'
@@ -99,6 +100,8 @@ function App() {
 
         {/* Fallback to student discover (optional) */}
         <Route path="*" element={<Navigate to="/student/discover" replace />} />
+
+        <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
   )
