@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
@@ -134,3 +134,18 @@ class VenueViewSet(viewsets.ModelViewSet):
     queryset = Venue.objects.all()
     serializer_class = VenueSerializer
 
+class GetEventsByUserView(generics.ListAPIView):
+    serializer_class = EventSerializer
+    # permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        # /api/event/all/?category=Music
+        category_name = request.query_params.get('category', None)
+        # user = request.user
+        events = Event.objects.all()
+        if category_name is None or category_name.lower() == 'all':
+            events = Event.objects.all()
+        else:
+            events = Event.objects.filter(category__name=category_name)
+        serializer = self.get_serializer(events, many=True)
+        return Response(serializer.data)

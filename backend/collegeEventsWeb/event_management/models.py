@@ -30,3 +30,8 @@ class Event(models.Model):
     def __str__(self):
         return self.title
 
+# {
+#     "title": "Sample Event",
+#     "description": "This is a sample event description.",
+#     "start_time": "2024-07-01T10:00:00
+# } json all value inside it are string or numbers. serialzisrs changes json into python data types.
