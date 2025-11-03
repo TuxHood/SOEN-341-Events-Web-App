@@ -20,6 +20,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { analyticsAPI } from '../api/analytics'
+import api from '../api/axios'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
   Legend
@@ -49,6 +50,11 @@ export default function AdminDashboard() {
   const [error, setError] = useState(null)
   const [data, setData] = useState(null)
 
+  // Event moderation states
+  const [pendingEvents, setPendingEvents] = useState([])
+  const [moderationLoading, setModerationLoading] = useState(false)
+  const [message, setMessage] = useState("")
+
   useEffect(() => {
     (async () => {
       const res = await analyticsAPI.getGlobalAnalytics()
@@ -60,16 +66,54 @@ export default function AdminDashboard() {
 
   const trendData = useMemo(() => {
     if (!data?.trends_last_12_weeks?.length) return []
-    // Ensure sorted by week_start just in case backend ordering shifts
     return [...data.trends_last_12_weeks]
-      .filter(d => d.week_start) // guard nulls
+      .filter(d => d.week_start)
       .sort((a, b) => a.week_start.localeCompare(b.week_start))
       .map(d => ({
-        week: d.week_start.slice(5), // "MM-DD" for compact axis
+        week: d.week_start.slice(5),
         Tickets: d.tickets_issued ?? 0,
         'Check-ins': d.check_ins ?? 0,
       }))
   }, [data])
+
+  // get pending events for moderation
+  useEffect(() => {
+    const fetchPendingEvents = async () => {
+      setModerationLoading(true)
+      try {
+        const res = await api.get('/api/events/')
+        const pending = res.data.filter(e => e.status === 'Pending')
+        setPendingEvents(pending)
+      } catch (err) {
+        console.error('Error fetching pending events:', err)
+      } finally {
+        setModerationLoading(false)
+      }
+    }
+    fetchPendingEvents()
+  }, [])
+
+  const handleApprove = async (id) => {
+    try {
+      const res = await api.post(`/api/events/${id}/approve/`)
+      setMessage(res.data.message)
+      setPendingEvents(prev => prev.filter(e => e.id !== id))
+    } catch (err) {
+      console.error('Error approving event:', err)
+      setMessage('Failed to approve event.')
+    }
+  }
+
+  const handleReject = async (id) => {
+    try {
+      const res = await api.post(`/api/events/${id}/reject/`)
+      setMessage(res.data.message)
+      setPendingEvents(prev => prev.filter(e => e.id !== id))
+    } catch (err) {
+      console.error('Error rejecting event:', err)
+      setMessage('Failed to reject event.')
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -94,18 +138,15 @@ export default function AdminDashboard() {
 
       {data && (
         <>
-          {/* Stats */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatCard label="Total Events" value={data.total_events ?? 0} />
             <StatCard label="Total Tickets Issued" value={data.total_tickets_issued ?? 0} />
             <StatCard label="Unique Attendees" value={data.unique_attendees ?? 0} />
           </div>
 
-          {/* Trends */}
           <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold">Participation trends (last 12 weeks)</h3>
-              {/* Slot for a future period selector */}
             </div>
 
             {trendData.length ? (
@@ -132,9 +173,51 @@ export default function AdminDashboard() {
         </>
       )}
 
+      <div className="mt-10">
+        <h3 className="text-xl font-bold mb-4">Pending Event Moderation</h3>
+
+        {moderationLoading ? (
+          <p>Loading pending events...</p>
+        ) : pendingEvents.length === 0 ? (
+          <EmptyState
+            title="No pending events"
+            description="All event submissions have been reviewed."
+          />
+        ) : (
+          <div className="grid gap-4">
+            {message && (
+              <div className="text-green-600 text-sm mb-2">{message}</div>
+            )}
+            {pendingEvents.map(event => (
+              <div key={event.id} className="border rounded-lg p-4 bg-white shadow-sm flex justify-between items-center">
+                <div>
+                  <h4 className="font-semibold">{event.title}</h4>
+                  <p className="text-sm text-gray-500">{event.description}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleApprove(event.id)}
+                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleReject(event.id)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="mt-6">
         <Link to="/" className="text-indigo-600 hover:underline">Back to Home</Link>
       </div>
     </div>
   )
 }
+
