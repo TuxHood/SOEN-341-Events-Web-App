@@ -18,8 +18,6 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    # include the collegeEventsWeb project's URL configuration so API routes
-    # (for example /api/events/) are available when using the top-level
-    # manage.py which points to core.settings
-    path('', include('collegeEventsWeb.collegeEventsWeb.urls')),
+    path('admin/', admin.site.urls),
+    path('api/events/', include('event_management.urls')),
 ]
