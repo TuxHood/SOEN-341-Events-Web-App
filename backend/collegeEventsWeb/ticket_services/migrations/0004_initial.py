@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('event_management', '0004_delete_ticket'),
+        ('event_management', '0002_rename_start_at_event_start_time_remove_event_end_at_and_more'),
         ('ticket_services', '0003_delete_ticket'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

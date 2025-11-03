@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('event_management', '0005_ticket'),
+        ('event_management', '0002_rename_start_at_event_start_time_remove_event_end_at_and_more'),
         ('ticket_services', '0005_alter_ticket_created_at_alter_ticket_event_and_more'),
     ]
 

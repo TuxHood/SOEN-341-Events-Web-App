@@ -28,6 +28,31 @@ export async function login(email, password) {
   };
 }
 
+export async function registerStudent(full_name, email, password) {
+  const res = await fetch(`${BASE}/api/users/register/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: full_name,
+      email,
+      password,
+    }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    try {
+      const data = JSON.parse(text);
+      throw new Error(data.detail || JSON.stringify(data));
+    } catch {
+      throw new Error(text || "Registration failed");
+    }
+  }
+
+  return JSON.parse(text);
+}
+
+
 export async function getProfile() {
   const res = await fetch(`${BASE}/api/users/me/`, {
     headers: { Accept: "application/json", ...authHeaders() },

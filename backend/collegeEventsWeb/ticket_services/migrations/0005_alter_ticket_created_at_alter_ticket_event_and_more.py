@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('event_management', '0005_ticket'),
+        ('event_management', '0002_rename_start_at_event_start_time_remove_event_end_at_and_more'),
         ('ticket_services', '0004_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
