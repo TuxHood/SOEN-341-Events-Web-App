@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import "./EventDiscovery.css"; 
 
 const CONCORDIA = {
@@ -13,46 +13,66 @@ export default function EventDiscovery() {
   const [organization, setOrganization] = useState("");
   const [search, setSearch] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/event/all/`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch events");
+        }
+        const data = await response.json();
+        console.log("Fetched events:", data);
+        setEvents(data);
+        // Process and set the fetched events to state
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    }
+    // Fetch events from backend API when component mounts
+    fetchEvents();
+  }, [category]);
 
   // --- Hard-coded events, for now - will need to change to get data from backend eventually ---
-  const events = [
-    {
-      id: 1,
-      title: "AI in 2025",
-      time: "3:00 PM",
-      date: "2025-10-14",
-      category: "Tech",
-      organization: "IEEE Concordia",
-      description:
-        "Explore the latest advancements in artificial intelligence with guest speakers from industry and academia.",
-      image:
-        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=60",
-    },
-    {
-      id: 2,
-      title: "Battle of the Bands",
-      time: "8:00 PM",
-      date: "2025-10-20",
-      category: "Music",
-      organization: "Student Union",
-      description:
-        "Watch Concordia’s best bands compete live on stage. A night of sound, lights, and student talent!",
-      image:
-        "https://images.unsplash.com/photo-1507874457470-272b3c8d8ee2?auto=format&fit=crop&w=800&q=60",
-    },
-    {
-      id: 3,
-      title: "Basketball Finals",
-      time: "6:00 PM",
-      date: "2025-10-16",
-      category: "Sports",
-      organization: "Athletics Dept.",
-      description:
-        "The grand finale of the interfaculty basketball league — come cheer for your department!",
-      image:
-        "https://t4.ftcdn.net/jpg/00/62/39/19/360_F_62391976_WKbOA72PbU28IAfUjn6tLAPz3e2IVxdr.jpg",
-    },
-  ];
+  // const events = [
+  //   {
+  //     id: 1,
+  //     title: "AI in 2025",
+  //     time: "3:00 PM",
+  //     date: "2025-10-14",
+  //     category: "Tech",
+  //     organization: "IEEE Concordia",
+  //     description:
+  //       "Explore the latest advancements in artificial intelligence with guest speakers from industry and academia.",
+  //     image:
+  //       "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=60",
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Battle of the Bands",
+  //     time: "8:00 PM",
+  //     date: "2025-10-20",
+  //     category: "Music",
+  //     organization: "Student Union",
+  //     description:
+  //       "Watch Concordia’s best bands compete live on stage. A night of sound, lights, and student talent!",
+  //     image:
+  //       "https://images.unsplash.com/photo-1507874457470-272b3c8d8ee2?auto=format&fit=crop&w=800&q=60",
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "Basketball Finals",
+  //     time: "6:00 PM",
+  //     date: "2025-10-16",
+  //     category: "Sports",
+  //     organization: "Athletics Dept.",
+  //     description:
+  //       "The grand finale of the interfaculty basketball league — come cheer for your department!",
+  //     image:
+  //       "https://t4.ftcdn.net/jpg/00/62/39/19/360_F_62391976_WKbOA72PbU28IAfUjn6tLAPz3e2IVxdr.jpg",
+  //   },
+  // ];
 
   // --- Derived lists ---
   const categories = useMemo(() => [...new Set(events.map(e => e.category))], [events]);
