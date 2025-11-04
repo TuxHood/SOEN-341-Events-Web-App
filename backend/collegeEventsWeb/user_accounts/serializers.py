@@ -44,15 +44,14 @@ class LoginSerializer(serializers.Serializer):
             try:
                 u = User.objects.get(email=email)
                 if not u.check_password(password):
-                    # Return a single 'detail' key instead of non_field_errors
-                    raise serializers.ValidationError({"detail": "Invalid email or password."})
+                    raise serializers.ValidationError("Invalid email or password.")
                 user = u
             except User.DoesNotExist:
-                raise serializers.ValidationError({"detail": "Invalid email or password."})
+                raise serializers.ValidationError("Invalid email or password.")
 
         if user.status != User.Status.ACTIVE:
-            # Treat non-active as blocked login and return consistent shape
-            raise serializers.ValidationError({"detail": "Account is not active."})
+            # Treat non-active as blocked login
+            raise serializers.ValidationError("Account is not active.")
         attrs["user"] = user
         return attrs
 

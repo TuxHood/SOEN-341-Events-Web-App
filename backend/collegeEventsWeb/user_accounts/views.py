@@ -1,82 +1,41 @@
-from rest_framework import status, permissions, serializers as drf_serializers
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.utils import timezone
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from collegeEventsWeb.user_accounts.permissions import HasRole
+from .models import Ticket
+from .serializers import TicketSerializer
 
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+class TicketViewSet(viewsets.ModelViewSet):
+    serializer_class = TicketSerializer
 
-def set_jwt_cookie(response, access_token, secure=False, samesite="Lax"):
-    # Set HttpOnly cookie with JWT access token
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=secure,
-        samesite=samesite,
-        path="/",
-        max_age=6 * 60 * 60,  # 6 hours
-    )
-    return response
+    def get_permissions(self):
+        if self.action in ['create']:
+            # Only students can buy tickets
+            permission_classes = [HasRole.require('student')]
+        elif self.action in ['update', 'partial_update', 'destroy']:
+            # Only admins can modify tickets
+            permission_classes = [HasRole.require('admin')]
+        else:
+            # Anyone authenticated can list/retrieve
+            permission_classes = [IsAuthenticated]
+        return [p() for p in permission_classes]
 
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, "role", "").lower()
+        
+        if role == "admin":
+            return Ticket.objects.all()
+        if role == "organizer":
+            # Organizers can see tickets for their events
+            from collegeEventsWeb.event_management.models import Event
+            organizer_events = Event.objects.filter(organizer=user)
+            return Ticket.objects.filter(event__in=organizer_events)
+        # Students see only their own tickets
+        return Ticket.objects.filter(buyer=user)
 
-class RegisterView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        data = UserSerializer(user).data
-        return Response(data, status=status.HTTP_201_CREATED)
-
-
-class LoginView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data, context={"request": request})
-        try:
-            serializer.is_valid(raise_exception=True)
-        except drf_serializers.ValidationError as exc:
-            # Normalize error shape to {'detail': '...'} so frontend shows a clean message
-            def extract_message(d):
-                if isinstance(d, dict):
-                    # prefer explicit 'detail' key, otherwise take the first value
-                    v = d.get('detail') if 'detail' in d else next(iter(d.values()), None)
-                    return extract_message(v)
-                if isinstance(d, (list, tuple)):
-                    return extract_message(d[0]) if d else None
-                return str(d)
-
-            message = extract_message(exc.detail)
-            return Response({'detail': message or 'Invalid request.'}, status=status.HTTP_400_BAD_REQUEST)
-        user = serializer.validated_data["user"]
-
-        # Issue tokens
-        refresh = RefreshToken.for_user(user)
-        access = str(refresh.access_token)
-
-        resp = Response({"user": UserSerializer(user).data, "token_type": "Bearer"}, status=status.HTTP_200_OK)
-        set_jwt_cookie(resp, access_token=access, secure=False, samesite="Lax")
-        # Optional: also return bearer in body if your frontend prefers Authorization header usage
-        resp.data["access"] = access
-        resp.data["refresh"] = str(refresh)
-        return resp
-
-
-class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request):
-        resp = Response({"detail": "Logged out."}, status=status.HTTP_200_OK)
-        resp.delete_cookie("access_token", path="/")
-        return resp
-
-
-class MeView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        return Response(UserSerializer(request.user).data)
+    def perform_create(self, serializer):
+        # Double-check only students can create tickets
+        if getattr(self.request.user, "role", "").lower() != 'student':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only students can purchase tickets")
+        serializer.save(buyer=self.request.user)

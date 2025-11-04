@@ -1,136 +1,102 @@
-from rest_framework import viewsets, status
+from django.db.models import Q
+from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from django.db.models import Count, Q
+from rest_framework.permissions import AllowAny
 from django.http import HttpResponse
 import csv
+
 from .models import Event, Category, Venue
 from .serializers import EventSerializer, CategorySerializer, VenueSerializer
+from user_accounts.permissions import HasRole
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
+    queryset = Event.objects.all()
 
-    @action(detail=True, methods=['get'], url_path='analytics')
-    def analytics(self, request, pk=None):
-        """
-        Get analytics data for a specific event:
-        - Total tickets issued
-        - Tickets checked in (attendance)
-        - Venue capacity
-        - Remaining capacity
-        - Check-in percentage
-        """
-        event = self.get_object()
-        
-        # Get ticket statistics
-        total_tickets = event.tickets.count()
-        checked_in = event.tickets.filter(is_used=True).count()
-        venue_capacity = event.venue.capacity
-        remaining_capacity = venue_capacity - total_tickets
-        
-        # Calculate percentages
-        check_in_percentage = (checked_in / total_tickets * 100) if total_tickets > 0 else 0
-        capacity_utilization = (total_tickets / venue_capacity * 100) if venue_capacity > 0 else 0
-        
-        analytics_data = {
-            'event_id': event.id,
-            'event_title': event.title,
-            'tickets_issued': total_tickets,
-            'tickets_checked_in': checked_in,
-            'tickets_pending': total_tickets - checked_in,
-            'venue_capacity': venue_capacity,
-            'remaining_capacity': remaining_capacity,
-            'check_in_percentage': round(check_in_percentage, 2),
-            'capacity_utilization': round(capacity_utilization, 2),
-        }
-        
-        return Response(analytics_data)
-    
-    @action(detail=True, methods=['get'], url_path='attendees')
-    def attendees(self, request, pk=None):
-        """
-        Get list of all attendees for a specific event.
-        Returns ticket information including check-in status.
-        Only accessible to the event organizer.
-        """
-        event = self.get_object()
-        
-        # Security check: Only allow the organizer to view attendees
-        if request.user.is_authenticated and event.organizer.id != request.user.id:
-            if request.user.role != 'admin':
-                return Response(
-                    {'detail': 'You do not have permission to view attendees for this event.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
-        # Get all tickets for this event
-        tickets = event.tickets.select_related('owner').all()
-        
-        # Build the attendee list
-        attendee_list = []
-        for ticket in tickets:
-            attendee_list.append({
-                'ticket_id': str(ticket.id),
-                'name': ticket.owner.name,
-                'email': ticket.owner.email,
-                'is_checked_in': ticket.is_used,
-                'check_in_time': ticket.created_at if ticket.is_used else None,
-                'qr_code': ticket.qr_code,
-            })
-        
-        return Response({
-            'event_id': event.id,
-            'event_title': event.title,
-            'total_attendees': len(attendee_list),
-            'checked_in_count': sum(1 for a in attendee_list if a['is_checked_in']),
-            'attendees': attendee_list,
-        })
+    def _role(self, user):
+        role = getattr(user, "role", "").lower()
+        if role not in ["student", "organizer", "admin"]:
+            return "student"
+        return role
 
-    @action(detail=True, methods=['get'], url_path='attendees/export')
-    def export_attendees(self, request, pk=None):
-        """
-        Export attendee list as CSV file.
-        Only accessible to the event organizer.
-        """
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            permission_classes = [HasRole.require("organizer", "admin")]
+        elif self.action in ["approve", "reject"]:
+            permission_classes = [HasRole.require("admin")]
+        else:
+            permission_classes = [AllowAny]
+        return [p() for p in permission_classes]
+
+    def get_queryset(self):
+        user = self.request.user
+        role = self._role(user)
+        qs = Event.objects.all()
+
+        if self.action in ["list", "retrieve"]:
+            if role == "admin":
+                return qs
+            if role == "organizer":
+                return qs.filter(
+                    Q(organizer=user) | Q(status=Event.Status.APPROVED)
+                ).distinct()
+            return qs.filter(status=Event.Status.APPROVED)
+
+        if role == "admin":
+            return qs
+        if role == "organizer":
+            return qs.filter(organizer=user)
+        return qs.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        role = self._role(user)
+
+        if role == "admin":
+            organizer = serializer.validated_data.get("organizer", user)
+            serializer.save(organizer=organizer)
+            return
+
+        if role == "organizer":
+            serializer.save(organizer=user, status=Event.Status.PENDING)
+            return
+
+        raise PermissionDenied("Students are not allowed to create events.")
+
+    @action(detail=True, methods=["post"], permission_classes=[HasRole.require("admin")])
+    def approve(self, request, pk=None):
         event = self.get_object()
-        
-        # Security check: Only allow the organizer to export attendees
-        if request.user.is_authenticated and event.organizer.id != request.user.id:
-            if request.user.role != 'admin':
-                return Response(
-                    {'detail': 'You do not have permission to export attendees for this event.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
-        # Create the HttpResponse with CSV content type
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="attendees_{event.id}_{event.title.replace(" ", "_")}.csv"'
-        
-        # Create CSV writer
-        writer = csv.writer(response)
-        
-        # Write header row
-        writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time', 'QR Code'])
-        
-        # Get all tickets and write data rows
-        tickets = event.tickets.select_related('owner').all()
-        for ticket in tickets:
-            writer.writerow([
-                str(ticket.id),
-                ticket.owner.name,
-                ticket.owner.email,
-                'Checked In' if ticket.is_used else 'Not Checked In',
-                ticket.created_at if ticket.is_used else '',
-                ticket.qr_code,
-            ])
-        
-        return response
+        event.status = Event.Status.APPROVED
+        event.save(update_fields=["status"])
+        return Response({"message": "Event approved", "id": event.id, "status": event.status})
+
+    @action(detail=True, methods=["post"], permission_classes=[HasRole.require("admin")])
+    def reject(self, request, pk=None):
+        event = self.get_object()
+        event.status = Event.Status.REJECTED
+        event.save(update_fields=["status"])
+        return Response({"message": "Event rejected", "id": event.id, "status": event.status})
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            permission_classes = [HasRole.require("organizer", "admin")]
+        else:
+            permission_classes = [AllowAny]
+        return [p() for p in permission_classes]
 
 class VenueViewSet(viewsets.ModelViewSet):
     queryset = Venue.objects.all()
     serializer_class = VenueSerializer
 
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            permission_classes = [HasRole.require("organizer", "admin")]
+        else:
+            permission_classes = [AllowAny]
+        return [p() for p in permission_classes]
