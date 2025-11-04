@@ -17,5 +17,6 @@ class Ticket(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Ticket for {self.event.title} owned by {self.owner.username}"
+        # FIXED: Changed from owner.username to owner.email since User model uses email
+        return f"Ticket for {self.event.title} owned by {self.owner.email}"
 

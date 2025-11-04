@@ -2,24 +2,25 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User
 
-class RegisterSerializer(serializers.ModelSerializer):
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = User
-        fields = ("name", "email", "password", "role")  # role optional—we’ll enforce rules
+        fields = ("name", "email", "password", "role")
         extra_kwargs = {"role": {"required": False}}
 
     def create(self, validated_data):
-        role = validated_data.get("role", User.Role.STUDENT)
+        role = validated_data.get("role", "student")
         password = validated_data.pop("password")
 
-        # Enforce your rules:
-        if role == User.Role.ORGANIZER:
-            status = User.Status.PENDING
+        # Enforce RBAC rules:
+        if role == "organizer":
+            status = "pending"  # Organizers need approval
         else:
-            role = User.Role.STUDENT
-            status = User.Status.ACTIVE
+            role = "student"  # Default to student
+            status = "active"  # Students are active immediately
 
         user = User.objects.create_user(
             email=validated_data["email"],
@@ -38,9 +39,12 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs.get("email")
         password = attrs.get("password")
-        user = authenticate(request=self.context.get("request"), email=email, password=password)
+        
+        # Authenticate user
+        user = authenticate(request=self.context.get("request"), username=email, password=password)
+        
         if not user:
-            # Manual authenticate for custom USERNAME_FIELD=email if needed
+            # Manual authentication for custom USERNAME_FIELD=email
             try:
                 u = User.objects.get(email=email)
                 if not u.check_password(password):
@@ -49,9 +53,10 @@ class LoginSerializer(serializers.Serializer):
             except User.DoesNotExist:
                 raise serializers.ValidationError("Invalid email or password.")
 
-        if user.status != User.Status.ACTIVE:
-            # Treat non-active as blocked login
+        # Check if user is active
+        if user.status != "active":
             raise serializers.ValidationError("Account is not active.")
+        
         attrs["user"] = user
         return attrs
 
@@ -60,3 +65,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "name", "email", "role", "status", "created_at", "updated_at")
+
+
+# Keep backward compatibility
+RegisterSerializer = UserRegistrationSerializer
