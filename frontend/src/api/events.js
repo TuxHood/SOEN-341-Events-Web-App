@@ -5,12 +5,12 @@ const api = (p) => `${BASE}${p.startsWith("/") ? "" : "/"}${p}`;
 
 // ✅ Get all events (Event Discovery page uses this)
 // Accepts an options object: { baseUrl, token, date }
-export async function fetchEvents({ baseUrl, token, date } = {}) {
+export async function fetchEvents({ baseUrl, token, date, from, to } = {}) {
   const url = new URL(api("/api/events/"));
-  if (date) {
-    // expect date in YYYY-MM-DD
-    url.searchParams.set("date", date);
-  }
+  if (date) url.searchParams.set("date", date);
+  if (from) url.searchParams.set("from", from);
+  if (to) url.searchParams.set("to", to);
+
   const headers = { "Accept": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 

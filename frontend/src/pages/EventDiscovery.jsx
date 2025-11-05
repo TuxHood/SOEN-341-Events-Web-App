@@ -47,12 +47,14 @@ useEffect(() => {
         // Only request a specific date from the API when the UI is in the "today" filter.
         // When the user selects "upcoming" or "ongoing", we want the server to return
         // the appropriate set (not limited to the chosen calendar date).
-        const dateToSend = filter === "today" ? (selectedDate || undefined) : undefined;
+        const dateToSend = (filter === "today" || filter === "ongoing") ? (selectedDate || undefined) : undefined;
+        const fromToSend = (filter === "upcoming") ? (selectedDate || undefined) : undefined;
 
         const data = await fetchEvents({
           baseUrl: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
           token: access || null,
           date: dateToSend,
+          from: fromToSend,
         });
 
       // Normalize API response: support either an array or a paginated { results: [...] } object
@@ -98,7 +100,9 @@ useEffect(() => {
  const orgs = useMemo(() => [...new Set(events.map(e => e.organization).filter(Boolean))], [events]);
 
 
-const now = Date.now();
+// Reference time used for 'ongoing' and 'upcoming' filters. When a date is selected
+// use that date as the reference; otherwise use the current time.
+const now = (filter === "ongoing" || filter === "upcoming") ? selectedDayBase.getTime() : Date.now();
 
 // Compute the day window to use for the "today" filter. If the user selected
 // a date in the calendar, use that day; otherwise default to the current day.
@@ -129,11 +133,11 @@ todayEnd.setHours(23, 59, 59, 999);
      return end >= todayStart.getTime() && start <= todayEnd.getTime();
    }
    if (filter === "ongoing") {
-     // happening right now
+     // happening at the reference moment (selected date or current time)
      return start <= now && now <= end;
    }
    if (filter === "upcoming") {
-     // starts in the future
+     // starts after the reference moment (selected date or current time)
      return start > now;
    }
    // default
