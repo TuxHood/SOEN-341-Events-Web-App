@@ -11,6 +11,8 @@ export default function EventDiscovery() {
  const [events, setEvents] = useState([]);
  const [loading, setLoading] = useState(true);
  const [err, setErr] = useState("");
+  // selected date for the calendar (YYYY-MM-DD)
+  const [selectedDate, setSelectedDate] = useState("");
 
 
 
@@ -45,6 +47,7 @@ useEffect(() => {
       const data = await fetchEvents({
         baseUrl: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
         token: access || null,
+        date: selectedDate || undefined,
       });
 
       // Normalize API response: support either an array or a paginated { results: [...] } object
@@ -81,7 +84,7 @@ useEffect(() => {
     }
   };
   load();
-}, [access]);
+}, [access, selectedDate]);
 
 
 
@@ -144,9 +147,15 @@ useEffect(() => {
 
  // Today display
  const today = new Date();
+ const todayIso = today.toISOString().split("T")[0];
  const formattedToday = today.toLocaleDateString("en-CA", {
    weekday: "long", month: "long", day: "numeric", year: "numeric",
  });
+
+ // ensure selectedDate defaults to today on first render
+ React.useEffect(() => {
+   if (!selectedDate) setSelectedDate(todayIso);
+ }, [selectedDate, todayIso]);
 
 
  const EventModal = ({ event, onClose }) => {
@@ -217,7 +226,7 @@ useEffect(() => {
          <div className="filter-card">
            <h3>Calendar</h3>
            <p>{formattedToday}</p>
-           <input type="date" value={today.toISOString().split("T")[0]} readOnly />
+           <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
          </div>
 
 

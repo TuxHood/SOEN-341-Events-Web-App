@@ -8,6 +8,7 @@ from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
+import datetime
 
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
@@ -50,6 +51,19 @@ class EventViewSet(viewsets.ModelViewSet):
         end_field   = _first_existing_field(Event, "end_at", "end_time")
 
         qs = Event.objects.all()
+
+        # Optional: filter by a specific date passed as ?date=YYYY-MM-DD
+        date_str = self.request.query_params.get("date") or None
+        if date_str:
+            try:
+                date_obj = datetime.date.fromisoformat(date_str)
+                if start_field:
+                    qs = qs.filter(**{f"{start_field}__date": date_obj})
+                else:
+                    qs = qs.filter(start_time__date=date_obj)
+            except Exception:
+                # ignore parse errors and continue with default queryset
+                pass
 
         # show ongoing/upcoming (end >= now) if end exists
         if end_field:
