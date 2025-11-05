@@ -4,7 +4,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 ROLE_PATH_RULES = {
     "student": [
-        "/api/events",   # prefix
+        # Students may access ticket-related endpoints; event list/detail permissions
+        # are handled at the view level (organizer-only checks are implemented in views).
         "/api/tickets",
     ],
     "organizer": [
@@ -16,10 +17,14 @@ ROLE_PATH_RULES = {
 }
 
 OPEN_PATHS = [
-    "/api/user_accounts/login",
-    "/user_accounts/register",
-    "/user_accounts/logout",
+    # Public auth endpoints as mounted under /api/ (see user_accounts.urls)
+    "/api/users/login",
+    "/api/users/register",
+    "/api/users/logout",
+    # Admin UI and static admin assets should remain open to allow login page
     "/admin",
+    # CSRF helper used by the SPA to set the csrftoken cookie
+    "/api/csrf",
 ]
 
 class RoleAuthorizationMiddleware:
@@ -42,6 +47,17 @@ class RoleAuthorizationMiddleware:
             return self.get_response(request)
 
         # Try to authenticate via cookie or header
+        # If an 'access_token' cookie is present, copy it to the Authorization header
+        # so DRF's JWTAuthentication (which reads HTTP_AUTHORIZATION) can authenticate.
+        try:
+            if 'HTTP_AUTHORIZATION' not in request.META:
+                token = request.COOKIES.get('access_token')
+                if token:
+                    request.META['HTTP_AUTHORIZATION'] = f'Bearer {token}'
+        except Exception:
+            # ignore cookie reading errors
+            pass
+
         request.user = getattr(request, "user", None)
         try:
             header_user_auth = self.jwt_auth.authenticate(request)

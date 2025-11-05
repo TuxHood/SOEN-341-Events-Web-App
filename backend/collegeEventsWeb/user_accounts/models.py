@@ -4,6 +4,7 @@ from django.contrib.auth.models import (
     AbstractBaseUser, PermissionsMixin, BaseUserManager
 )
 
+
 class UserManager(BaseUserManager):
     def create_user(self, email, name, password=None, role="student", status="active", **extra_fields):
         if not email:
@@ -65,6 +66,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Used for organizer approval and general account state.",
     )
 
+    # Organizer Approval Fields
+    is_organizer = models.BooleanField(default=False)
+    is_approved_organizer = models.BooleanField(default=False)
+    approval_requested_at = models.DateTimeField(null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_users'
+    )
+
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -95,3 +105,23 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.name} <{self.email}>"
+
+    # Convenience methods for admin workflow
+    def request_organizer_approval(self):
+        self.is_organizer = True
+        self.status = self.Status.PENDING
+        self.approval_requested_at = timezone.now()
+        self.save()
+
+    def approve_organizer(self, admin_user):
+        self.is_approved_organizer = True
+        self.status = self.Status.ACTIVE
+        self.approved_at = timezone.now()
+        self.reviewed_by = admin_user
+        self.save()
+
+    def reject_organizer(self, admin_user):
+        self.is_approved_organizer = False
+        self.status = self.Status.SUSPENDED
+        self.reviewed_by = admin_user
+        self.save()

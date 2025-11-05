@@ -7,4 +7,11 @@ createRoot(document.getElementById("root")).render(
 <StrictMode>
 <App />
 </StrictMode>
+// Debug helper: log when main.jsx is executed so we can confirm the app bundle loads
+console.log('[debug] main.jsx loaded')
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
 )

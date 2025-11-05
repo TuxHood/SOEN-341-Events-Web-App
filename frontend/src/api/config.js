@@ -15,6 +15,11 @@ if (rawEnvApi && /:(5173|5174)\b/.test(rawEnvApi)) {
 }
 
 const API_BASE_URL = (rawEnvApi && !/(:(5173|5174)\b)/.test(rawEnvApi)) ? rawEnvApi : DEFAULT_API_BASE;
+// Backend endpoints. For local development we prefer a relative `/api` so Vite's
+// dev server proxy (configured in vite.config.js) forwards requests to the
+// Django backend. You can override with VITE_API_URL in environments where the
+// backend runs on a different host/port.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const API_ENDPOINTS = {
 
@@ -36,11 +41,47 @@ export const API_ENDPOINTS = {
 
 export async function apiCall(endpoint, options = {}) {
   try {
+    // Always include credentials so httponly cookies set by the backend
+    // (access token) are sent and received during auth flows.
+    // Build request headers and include Authorization if we have a stored token
+    const reqHeaders = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    };
+    // Helper to read a cookie by name
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    }
+    // For unsafe methods, ensure csrftoken exists and include X-CSRFToken header
+    const method = (options.method || 'GET').toUpperCase();
+    const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+    if (unsafe) {
+      let csrftoken = getCookie('csrftoken');
+      // If no csrftoken present, call the dev helper to set it (with credentials)
+      if (!csrftoken) {
+        try {
+          // call the backend helper to set csrftoken cookie via proxy
+          await fetch('/api/csrf/', { method: 'GET', credentials: 'include' });
+          csrftoken = getCookie('csrftoken');
+        } catch (e) {
+          // ignore — we'll continue and let the request fail with CSRF if necessary
+        }
+      }
+      if (csrftoken && !reqHeaders['X-CSRFToken'] && !reqHeaders['X-CSRF-Token']) {
+        reqHeaders['X-CSRFToken'] = csrftoken;
+      }
+    }
+    try {
+      const token = localStorage.getItem('access_token');
+      if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
+    } catch (err) {
+      // ignore localStorage errors
+    }
+
     const response = await fetch(endpoint, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      credentials: 'include',
+      headers: reqHeaders,
       ...options,
     });
 

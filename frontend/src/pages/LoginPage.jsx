@@ -1,8 +1,7 @@
-// src/pages/LoginPage.jsx
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../components/AuthProvider";
-import { login as apiLogin } from "../api/auth.js";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS, apiCall } from '../api/config';
+import api from '../api/apiClient';
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -29,18 +28,38 @@ export default function LoginPage() {
     }
 
     try {
-      // your API helper
-      const data = await apiLogin(email, password);
+      // Ensure csrf cookie is present (dev helper) before POSTing
+      try {
+        // Use the axios instance which sets withCredentials so the cookie is
+        // correctly stored by the browser behind the Vite proxy.
+        await api.get('/csrf/');
+      } catch (e) {
+        // ignore; if csrf endpoint isn't reachable the login may still work
+      }
 
-      if (data?.access) localStorage.setItem("access", data.access);
-      if (data?.refresh) localStorage.setItem("refresh", data.refresh);
+      const result = await apiCall(API_ENDPOINTS.login, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
 
-      setUser?.(data.user ?? { email });
+      if (!result.ok) {
+        // Show backend error message when available
+        const message = result.data && (result.data.detail || result.data.error || JSON.stringify(result.data));
+        setError(message || 'Invalid email or password');
+        return;
+      }
 
-      // optional provider login hook
-      let providerRoute = null;
-      if (typeof providerLogin === "function") {
-        providerRoute = (await providerLogin(email, password))?.route;
+      // Login success: store token and redirect based on role
+      const user = result.data.user;
+      // Store access token for API use (frontend may also read cookie set by backend)
+      if (result.data.access) {
+        localStorage.setItem('access_token', result.data.access);
+        // Ensure axios instance also sends the new token for subsequent requests
+        try {
+          api.defaults.headers.common['Authorization'] = `Bearer ${result.data.access}`;
+        } catch (e) {
+          // ignore if axios isn't available
+        }
       }
 
       // route by role, with fallbacks
