@@ -13,6 +13,8 @@ export default function EventDiscovery() {
  const [err, setErr] = useState("");
   // selected date for the calendar (YYYY-MM-DD)
   const [selectedDate, setSelectedDate] = useState("");
+  // For a smooth UX, keep a raw input value and debounce updates to `selectedDate`.
+  const [selectedDateRaw, setSelectedDateRaw] = useState("");
 
 
 
@@ -167,6 +169,19 @@ const formattedToday = displayDate.toLocaleDateString("en-CA", {
    if (!selectedDate) setSelectedDate(todayIso);
  }, [selectedDate, todayIso]);
 
+ // keep raw input in-sync when selectedDate is set programmatically
+ React.useEffect(() => {
+   if (selectedDate) setSelectedDateRaw(selectedDate);
+ }, [selectedDate]);
+
+ // Debounce changes from the input before applying to the active selectedDate used by filters
+ React.useEffect(() => {
+   const t = setTimeout(() => {
+     if (selectedDateRaw !== selectedDate) setSelectedDate(selectedDateRaw);
+   }, 250);
+   return () => clearTimeout(t);
+ }, [selectedDateRaw]);
+
 
  const EventModal = ({ event, onClose }) => {
  const navigate = useNavigate();
@@ -236,7 +251,11 @@ const formattedToday = displayDate.toLocaleDateString("en-CA", {
          <div className="filter-card">
            <h3>Calendar</h3>
            <p>{formattedToday}</p>
-           <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+           <input type="date" value={selectedDateRaw} onChange={(e) => setSelectedDateRaw(e.target.value)} />
+           <div style={{ marginTop: 8 }}>
+             <small style={{ color: '#666' }}>Active: <strong>{filter.charAt(0).toUpperCase() + filter.slice(1)}</strong></small>
+             <div style={{ fontSize: 13, marginTop: 4 }}>Showing events for <strong>{displayDate.toLocaleDateString()}</strong></div>
+           </div>
          </div>
 
 
