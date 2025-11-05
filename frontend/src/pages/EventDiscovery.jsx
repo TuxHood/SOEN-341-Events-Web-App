@@ -102,17 +102,37 @@ useEffect(() => {
  const orgs = useMemo(() => [...new Set(events.map(e => e.organization).filter(Boolean))], [events]);
 
 
-// Reference time used for 'ongoing' and 'upcoming' filters. When a date is selected
-// use that date as the reference; otherwise use the current time.
-const now = (filter === "ongoing" || filter === "upcoming") ? selectedDayBase.getTime() : Date.now();
+// Helper: create a local Date at midnight for a YYYY-MM-DD string (avoids UTC parsing oddities)
+function makeLocalDateFromIso(iso) {
+  if (!iso) return null;
+  const parts = String(iso).split("-").map((s) => Number(s));
+  if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
 
 // Compute the day window to use for the "today" filter. If the user selected
-// a date in the calendar, use that day; otherwise default to the current day.
-const selectedDayBase = selectedDate ? new Date(selectedDate) : new Date();
+// a date in the calendar, use that day (local midnight); otherwise default to the current day.
+const selectedDayBase = selectedDate ? makeLocalDateFromIso(selectedDate) : new Date();
 const todayStart = new Date(selectedDayBase);
 todayStart.setHours(0, 0, 0, 0);
 const todayEnd = new Date(selectedDayBase);
 todayEnd.setHours(23, 59, 59, 999);
+
+// Reference time used for 'ongoing' and 'upcoming' filters. Use local midday for the selected date
+// to avoid timezone edge cases (midnight UTC shifting to previous day in some zones).
+const now = (() => {
+  if (filter === "ongoing" || filter === "upcoming") {
+    if (selectedDate) {
+      const d = makeLocalDateFromIso(selectedDate);
+      if (d) {
+        d.setHours(12, 0, 0, 0);
+        return d.getTime();
+      }
+    }
+    return Date.now();
+  }
+  return Date.now();
+})();
 
 
  // Client-side filters (search, category, org)
