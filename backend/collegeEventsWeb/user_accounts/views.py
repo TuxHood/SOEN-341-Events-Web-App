@@ -143,8 +143,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def approve_organizer(self, request, pk=None):
         user = self.get_object()
         if user.role == User.Role.ORGANIZER and user.status == User.Status.PENDING:
-            user.status = User.Status.ACTIVE
-            user.save()
+            user.approve_organizer(request.user)
             return Response(
                 {"message": f"Organizer {user.name} approved."},
                 status=status.HTTP_200_OK
