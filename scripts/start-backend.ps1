@@ -51,7 +51,7 @@ $requirementsPath = Join-Path $projectDir 'requirements.txt'
 if (-not (Test-Path -Path $requirementsPath)) {
     $fallback = Join-Path $backendPath 'requirements.txt'
     if (Test-Path -Path $fallback) {
-        Write-Host "No requirements.txt in $projectDir — using $fallback instead."
+        Write-Host ("No requirements.txt in {0} - using {1} instead." -f $projectDir, $fallback)
         $requirementsPath = $fallback
     }
 }
