@@ -157,8 +157,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def reject_organizer(self, request, pk=None):
         user = self.get_object()
         if user.role == User.Role.ORGANIZER and user.status == User.Status.PENDING:
-            user.status = User.Status.SUSPENDED
-            user.save()
+            user.reject_organizer(request.user)
             return Response(
                 {"message": f"Organizer {user.name} rejected."},
                 status=status.HTTP_200_OK
