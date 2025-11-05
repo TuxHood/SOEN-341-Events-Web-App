@@ -27,9 +27,13 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', RedirectView.as_view(url='/admin/', permanent=False)),
 
-    path('api/events/', include('collegeEventsWeb.event_management.urls')),
-    path('api/users/', include('collegeEventsWeb.user_accounts.urls')),
-    path('api/tickets/', include('collegeEventsWeb.ticket_services.urls')),
+    # Central API include: the app url modules register their own sub-paths
+    # (e.g. event_management registers 'events', ticket_services registers 'tickets').
+    # Include them under the single '/api/' prefix to avoid duplicated segments
+    # such as '/api/events/events/...'.
+    path('api/', include('event_management.urls')),
+    path('api/users/', include('user_accounts.urls')),
+    path('api/', include('ticket_services.urls')),
 
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

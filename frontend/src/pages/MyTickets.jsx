@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import TopRightProfile from "../components/TopRightProfile";
 import { useAuth } from "../components/AuthProvider";   
 import "./MyTickets.css";
+import placeholder from "../assets/placeholder.svg";
 import { getMyTickets, cancelTicket } from "../api/tickets.js";
 
 function icsEscape(s = "") {
@@ -243,36 +244,24 @@ export default function MyTicketsPage() {
               {filtered.map((t, i) => {
                 const ev = t?.event || {};
                 const tid = t?.id || t?.ticket_id || String(i);
-                const start = ev.start_time || ev.start_time || ev.start || null;
+        const start = ev.start_time || ev.start || ev.starts_at || ev.begin_at || null;
 
-                const title = ev.title || ev.name || "Event details";
-                const when  = ev.start_time || ev.start_time || ev.start || null;
-                const modalImg = ev.image_url || ev.image || ev.thumbnail_url || ev.thumbnail || null;
-
-                {modalImg ? (
-                <img
-                    src={modalImg}
-                    alt={title}
-                    style={{ width: 160, height: 120, objectFit: "cover", borderRadius: 8 }}
-                    onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-                ) : null}
-
-                // Prefer what the backend returns; no placeholder. Only render if present.
-                const img =
-                ev.image_url || ev.image || ev.thumbnail_url || ev.thumbnail || null;
+        const title = ev.title || ev.name || "Event details";
+        const when = start;
+        // prefer several possible image fields; fall back to a stable placeholder
+                const img = ev.image_url || ev.image || ev.thumbnail_url || ev.thumbnail || null;
+                const placeholderSrc = placeholder;
 
                 return (
                   <article className="ticket-card" key={tid}>
                     <div className="thumb">
-                    {img ? (
-                        <img
-                        src={img}
+                      <img
+                        src={img || placeholderSrc}
                         alt={title}
-                        // If the URL is bad, just hide the image instead of swapping to a placeholder
-                        onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        />
-                    ) : null}
+                        // If the URL is bad, replace with placeholder
+                        onError={(e) => { e.currentTarget.src = placeholderSrc; }}
+                        style={{ width: 160, height: 120, objectFit: "cover", borderRadius: 8 }}
+                      />
                     </div>
 
                     {/*<div className="title-row">

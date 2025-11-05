@@ -20,7 +20,7 @@ class EventSerializer(serializers.ModelSerializer):
     # Read-only extras for the UI
     organizer_name = serializers.SerializerMethodField(read_only=True)
     category_name  = serializers.SerializerMethodField(read_only=True)
-    #image_url      = serializers.SerializerMethodField(read_only=True)
+    image_url      = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Event
@@ -51,6 +51,18 @@ class EventSerializer(serializers.ModelSerializer):
     def get_category_name(self, obj):
         c = getattr(obj, "category", None)
         return getattr(c, "name", None) if c else None
+
+    def get_image_url(self, obj):
+        # Return the stored image_url if provided, otherwise fall back to a
+        # sensible default (same as used by the frontend discovery view).
+        img = getattr(obj, "image_url", None) or ""
+        img = img.strip()
+        if img:
+            return img
+        # Default Unsplash placeholder used in the frontend when no image is set
+        return (
+            "https://images.unsplash.com/photo-1527525443983-6e60c75fff46?q=80&w=800&auto=format&fit=crop"
+        )
 
     #def get_image_url(self, obj):
         #img = getattr(obj, "image", None)

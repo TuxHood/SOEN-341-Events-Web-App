@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from collegeEventsWeb.event_management.models import Event
+from event_management.models import Event
 
 
 class Ticket(models.Model):

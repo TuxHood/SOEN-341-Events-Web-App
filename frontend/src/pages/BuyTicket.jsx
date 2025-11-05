@@ -7,7 +7,7 @@ import { buyTicket } from "../api/tickets";
 import "./BuyTicket.css";
 
 export default function BuyTicket() {
-  const { id } = useParams();
+  const { eventId } = useParams();
   const nav = useNavigate();
   const [event, setEvent] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -17,22 +17,22 @@ export default function BuyTicket() {
   React.useEffect(() => {
     (async () => {
       try {
-        const e = await getEvent(id);
+        const e = await getEvent(eventId);
         setEvent(e);
-      } catch (e) {
-        setErr(String(e));
+      } catch (err) {
+        setErr(String(err));
       } finally {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [eventId]);
 
   const onConfirm = async () => {
     try {
       setBusy(true);
       setErr("");
-      const t = await buyTicket(id); // creates or returns existing
-      nav(`/events/${id}/ticket`);
+  const t = await buyTicket(eventId); // creates or returns existing
+  nav(`/events/${eventId}/ticket`);
     } catch (e) {
       setErr(String(e));
     } finally {

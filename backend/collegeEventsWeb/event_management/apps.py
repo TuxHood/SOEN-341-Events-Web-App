@@ -1,12 +1,12 @@
 from django.apps import AppConfig
 
 
-
 class EventManagementConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'event_management'
+    """AppConfig for the event_management app.
 
-class EventManagementConfig(AppConfig):
+    Use the top-level package name 'event_management' so it matches
+    INSTALLED_APPS entry and the app package layout in the repo.
+    """
     default_auto_field = "django.db.models.BigAutoField"
-    name = "collegeEventsWeb.event_management"
-    label = "event_management"  # app label
+    name = "event_management"
+    label = "event_management"

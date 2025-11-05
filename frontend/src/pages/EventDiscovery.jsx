@@ -37,65 +37,50 @@ export default function EventDiscovery() {
  const [selectedEvent, setSelectedEvent] = useState(null);
 
 
- useEffect(() => {
- const load = async () => {
-   setLoading(true); setErr("");
-   try {
-     const base = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-     const url = `${base.replace(/\/$/, "")}/api/events/`;
-     console.log("Fetching events from:", url);
+useEffect(() => {
+  const load = async () => {
+    setLoading(true);
+    setErr("");
+    try {
+      const data = await fetchEvents({
+        baseUrl: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
+        token: access || null,
+      });
 
+      // Normalize API response: support either an array or a paginated { results: [...] } object
+      const items = Array.isArray(data) ? data : (data && data.results) ? data.results : [];
 
-     const res = await fetch(url, {
-       headers: { Accept: "application/json" },
-       credentials: "omit",
-     });
-     if (!res.ok) {
-       const txt = await res.text().catch(() => "");
-       throw new Error(`GET ${url} -> ${res.status} ${res.statusText} ${txt}`);
-     }
-     const data = await fetchEvents({
- baseUrl: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
- token: access || null,
-});
+      if (items && items.length) console.log("API sample event:", items[0]);
 
+      const shaped = items.map((e) => {
+        const start = parseDate(e.start_time);
+        const end = parseDate(e.end_time) || start;
 
-// Debug one sample so we can see the raw value in Console:
-if (data && data.length) console.log("API sample event:", data[0]);
-
-
-const shaped = data.map(e => {
- const start = parseDate(e.start_time);
- const end   = parseDate(e.end_time) || start;
-
-
- return {
-   id: e.id,
-   title: e.title,
-   description: e.description || "",
-   organization: e.organization || e.organizer_name || "",
-   category: e.category || e.category_name || "",
-   venue: e.venue || e.venue_name || "",
-   image: e.image_url || "https://images.unsplash.com/photo-1527525443983-6e60c75fff46?q=80&w=800&auto=format&fit=crop",
-
-
-   dateLabel: fmtDate(start),
-   timeLabel: fmtTime(start),
-
-
-   startMs: start ? start.getTime() : null,
-   endMs:   end   ? end.getTime()   : null,
- };
-});
-setEvents(shaped);
-   } catch (e) {
-     console.error(e);
-     setErr(e.message || "Failed to load events");
-   } finally {
-     setLoading(false);
-   }
- };
- load();
+        return {
+          id: e.id,
+          title: e.title,
+          description: e.description || "",
+          organization: e.organization || e.organizer_name || "",
+          category: e.category || e.category_name || "",
+          venue: e.venue || e.venue_name || "",
+          image:
+            e.image_url ||
+            "https://images.unsplash.com/photo-1527525443983-6e60c75fff46?q=80&w=800&auto=format&fit=crop",
+          dateLabel: fmtDate(start),
+          timeLabel: fmtTime(start),
+          startMs: start ? start.getTime() : null,
+          endMs: end ? end.getTime() : null,
+        };
+      });
+      setEvents(shaped);
+    } catch (e) {
+      console.error(e);
+      setErr(e.message || "Failed to load events");
+    } finally {
+      setLoading(false);
+    }
+  };
+  load();
 }, [access]);
 
 
@@ -119,18 +104,16 @@ setEvents(shaped);
  // Client-side filters (search, category, org)
  const filtered = events
  .filter((e) => {
-   // text/category/org filters (your existing ones)
+   // text/category/org filters
    const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase());
    const matchesCategory = !category || e.category === category;
    const matchesOrg = !organization || e.organization === organization;
    if (!(matchesSearch && matchesCategory && matchesOrg)) return false;
 
-
    // ignore items without a start time
    if (e.startMs == null) return false;
    const start = e.startMs;
    const end = e.endMs ?? e.startMs;
-
 
    // date filter logic
    if (filter === "today") {
@@ -145,7 +128,7 @@ setEvents(shaped);
      // starts in the future
      return start > now;
    }
-   // default (if any)
+   // default
    return true;
  })
  // nice default sort per mode

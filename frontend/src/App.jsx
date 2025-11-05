@@ -48,8 +48,8 @@ function AppShell() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Home />} />
-        <Route path="/events/:id" element={<EventDetail />} />
-        <Route path="/events/:eventId/analytics" element={<EventAnalyticsDashboard />} />
+  <Route path="/events/:eventId" element={<EventDetail />} />
+  <Route path="/events/:eventId/analytics" element={<EventAnalyticsDashboard />} />
         <Route path="/organizer" element={<OrganizerDashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/auth/login" element={<LoginPage />} />
@@ -63,11 +63,11 @@ function AppShell() {
         </Route>
 
         {/* Ticket flow (public after purchase link) */}
-        <Route path="/events/:id/ticket" element={<TicketConfirmation />} />
-        <Route path="/events/:id/buy" element={<BuyTicket />} />
+  <Route path="/events/:eventId/ticket" element={<TicketConfirmation />} />
+  <Route path="/events/:eventId/buy" element={<BuyTicket />} />
 
         {/* From main (leave public unless you want to guard it) */}
-        <Route path="/events/:eventId/attendees" element={<AttendeeList />} />
+  <Route path="/events/:eventId/attendees" element={<AttendeeList />} />
       </Routes>
     </>
   );

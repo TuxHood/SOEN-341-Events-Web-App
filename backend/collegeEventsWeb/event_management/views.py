@@ -65,10 +65,19 @@ class EventViewSet(viewsets.ModelViewSet):
         Event analytics (kept from main)
         """
         event = self.get_object()
-        total_tickets = event.tickets.count()
-        checked_in = event.tickets.filter(is_used=True).count()
-        venue_capacity = event.venue.capacity
-        remaining_capacity = venue_capacity - total_tickets
+        # ticket related_name in this project is `event_management_tickets`
+        total_tickets = event.event_management_tickets.count()
+        checked_in = event.event_management_tickets.filter(is_used=True).count()
+
+        # Event model may not have a Venue relation in this fork; be defensive.
+        venue_obj = getattr(event, 'venue', None)
+        if venue_obj is not None and hasattr(venue_obj, 'capacity'):
+            venue_capacity = venue_obj.capacity
+        else:
+            # fallback: use total_tickets as capacity to avoid division errors
+            venue_capacity = total_tickets or 0
+
+        remaining_capacity = max(venue_capacity - total_tickets, 0)
 
         check_in_percentage = (checked_in / total_tickets * 100) if total_tickets > 0 else 0
         capacity_utilization = (total_tickets / venue_capacity * 100) if venue_capacity > 0 else 0
@@ -99,7 +108,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        tickets = event.tickets.select_related('owner').all()
+        tickets = event.event_management_tickets.select_related('owner').all()
         attendee_list = [{
             'ticket_id': str(t.id),
             'name': getattr(t.owner, "name", ""),
@@ -136,7 +145,7 @@ class EventViewSet(viewsets.ModelViewSet):
         writer = csv.writer(response)
         writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time', 'QR Code'])
 
-        for t in event.tickets.select_related('owner').all():
+        for t in event.event_management_tickets.select_related('owner').all():
             writer.writerow([
                 str(t.id),
                 getattr(t.owner, "name", ""),

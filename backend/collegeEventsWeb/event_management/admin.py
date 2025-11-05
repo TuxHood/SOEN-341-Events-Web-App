@@ -1,7 +1,7 @@
 # collegeEventsWeb/event_management/admin.py
 from django.contrib import admin
 from .models import Event, Payment, CalendarEntry
-from collegeEventsWeb.ticket_services.models import Ticket
+from ticket_services.models import Ticket
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):

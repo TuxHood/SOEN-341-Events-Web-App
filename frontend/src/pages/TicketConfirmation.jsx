@@ -6,7 +6,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import "./TicketConfirmation.css";
 
 export default function TicketConfirmation() {
-  const { id } = useParams();
+  const { eventId } = useParams();
   const [event, setEvent] = React.useState(null);
   const [ticket, setTicket] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -15,11 +15,11 @@ export default function TicketConfirmation() {
   React.useEffect(() => {
     (async () => {
       try {
-        const [e, t] = await Promise.all([getEvent(id), getTicketByEvent(id)]);
+        const [e, t] = await Promise.all([getEvent(eventId), getTicketByEvent(eventId)]);
         setEvent(e);
         setTicket(t);
-      } catch (e) {
-        setErr(String(e));
+      } catch (err) {
+        setErr(String(err));
       } finally {
         setLoading(false);
       }
