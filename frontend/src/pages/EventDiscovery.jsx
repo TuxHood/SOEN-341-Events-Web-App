@@ -93,15 +93,15 @@ useEffect(() => {
  const orgs = useMemo(() => [...new Set(events.map(e => e.organization).filter(Boolean))], [events]);
 
 
- const now = Date.now();
+const now = Date.now();
 
-
- const todayStart = new Date();
- todayStart.setHours(0, 0, 0, 0);
-
-
- const todayEnd = new Date();
- todayEnd.setHours(23, 59, 59, 999);
+// Compute the day window to use for the "today" filter. If the user selected
+// a date in the calendar, use that day; otherwise default to the current day.
+const selectedDayBase = selectedDate ? new Date(selectedDate) : new Date();
+const todayStart = new Date(selectedDayBase);
+todayStart.setHours(0, 0, 0, 0);
+const todayEnd = new Date(selectedDayBase);
+todayEnd.setHours(23, 59, 59, 999);
 
 
  // Client-side filters (search, category, org)
@@ -145,12 +145,13 @@ useEffect(() => {
  });
 
 
- // Today display
- const today = new Date();
- const todayIso = today.toISOString().split("T")[0];
- const formattedToday = today.toLocaleDateString("en-CA", {
-   weekday: "long", month: "long", day: "numeric", year: "numeric",
- });
+// Today/selected date display
+const today = new Date();
+const todayIso = today.toISOString().split("T")[0];
+const displayDate = selectedDate ? new Date(selectedDate) : today;
+const formattedToday = displayDate.toLocaleDateString("en-CA", {
+  weekday: "long", month: "long", day: "numeric", year: "numeric",
+});
 
  // ensure selectedDate defaults to today on first render
  React.useEffect(() => {
