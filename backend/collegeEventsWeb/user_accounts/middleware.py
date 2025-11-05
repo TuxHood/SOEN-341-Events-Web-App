@@ -4,7 +4,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 ROLE_PATH_RULES = {
     "student": [
-        "/api/events",   # prefix
+        # Students may access ticket-related endpoints; event list/detail permissions
+        # are handled at the view level (organizer-only checks are implemented in views).
         "/api/tickets",
     ],
     "organizer": [
@@ -16,15 +17,15 @@ ROLE_PATH_RULES = {
 }
 
 OPEN_PATHS = [
-    "/api/user_accounts/login",
-    "/user_accounts/register",
-    "/user_accounts/logout",
+    # Public auth endpoints as mounted under /api/ (see user_accounts.urls)
+    "/api/users/login",
+    "/api/users/register",
+    "/api/users/logout",
+    # Admin UI and static admin assets should remain open to allow login page
     "/admin",
+    # CSRF helper used by the SPA to set the csrftoken cookie
+    "/api/csrf",
 ]
-
-# Ensure the CSRF helper is accessible without requiring auth so it can set the
-# `csrftoken` cookie for SPA clients.
-OPEN_PATHS.append('/api/csrf')
 
 class RoleAuthorizationMiddleware:
     """
