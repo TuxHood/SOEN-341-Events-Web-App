@@ -45,10 +45,22 @@ try {
     Write-Host "Failed to install python-dotenv via pip. You may need to install it manually."
 }
 
-if (Test-Path -Path (Join-Path $projectDir 'requirements.txt')) {
-    & $venvPip install -r (Join-Path $projectDir 'requirements.txt')
+# Prefer a requirements.txt located inside the selected project directory. If missing,
+# fall back to the backend/requirements.txt so the team's centralized requirements are used.
+$requirementsPath = Join-Path $projectDir 'requirements.txt'
+if (-not (Test-Path -Path $requirementsPath)) {
+    $fallback = Join-Path $backendPath 'requirements.txt'
+    if (Test-Path -Path $fallback) {
+        Write-Host ("No requirements.txt in {0} - using {1} instead." -f $projectDir, $fallback)
+        $requirementsPath = $fallback
+    }
+}
+
+if (Test-Path -Path $requirementsPath) {
+    Write-Host "Installing packages from $requirementsPath"
+    & $venvPip install -r $requirementsPath
 } else {
-    Write-Host "No requirements.txt found in $projectDir; installing minimal backend dependencies..."
+    Write-Host "No requirements.txt found; installing minimal backend dependencies..."
     # Install minimal dependencies expected by the project so Django can start
     & $venvPip install django==5.2.7 djangorestframework django-cors-headers djangorestframework-simplejwt python-dotenv
 }

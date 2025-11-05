@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 # from user_accounts.permissions import IsAdmin  # (uncomment later if needed)
-from event_management.models import Event
+from .models import Event
 from ticket_services.models import Ticket
 
 @api_view(['GET'])
