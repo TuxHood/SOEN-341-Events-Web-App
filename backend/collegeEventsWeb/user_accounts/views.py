@@ -1,14 +1,59 @@
-from rest_framework import status, permissions, serializers as drf_serializers
+from rest_framework import status, permissions, viewsets, serializers as drf_serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.utils import timezone
-
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
+from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
+
+class DebugAuthView(APIView):
+    """Dev-only: return auth debug info so frontend can diagnose token/cookie issues."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        info = {
+            'http_authorization': request.META.get('HTTP_AUTHORIZATION'),
+            'cookies': {k: request.COOKIES.get(k) for k in ['access_token', 'csrftoken']},
+            'user_is_authenticated': getattr(request.user, 'is_authenticated', False),
+            'user_id': getattr(getattr(request, 'user', None), 'id', None),
+        }
+        # Try to authenticate via simplejwt directly
+        try:
+            jwt = JWTAuthentication()
+            auth = jwt.authenticate(request)
+            info['jwt_authenticate'] = bool(auth)
+            if auth:
+                user, token = auth
+                info['jwt_user_id'] = user.id
+        except Exception as e:
+            info['jwt_error'] = str(e)
+
+        return Response(info)
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class GetCSRFTokenView(APIView):
+    """Dev helper: ensure the CSRF cookie is set for the frontend.
+
+    Call this with GET (with credentials) before making POSTs from the SPA so
+    the browser receives a `csrftoken` cookie and can include it in the
+    X-CSRFToken header. This is safer than exempting views from CSRF.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({"detail": "CSRF cookie set"})
+
+
+# -------------------------
+# JWT Helper
+# -------------------------
 def set_jwt_cookie(response, access_token, secure=False, samesite="Lax"):
-    # Set HttpOnly cookie with JWT access token
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -21,6 +66,9 @@ def set_jwt_cookie(response, access_token, secure=False, samesite="Lax"):
     return response
 
 
+# -------------------------
+# Authentication Views
+# -------------------------
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -54,13 +102,14 @@ class LoginView(APIView):
             return Response({'detail': message or 'Invalid request.'}, status=status.HTTP_400_BAD_REQUEST)
         user = serializer.validated_data["user"]
 
-        # Issue tokens
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
 
-        resp = Response({"user": UserSerializer(user).data, "token_type": "Bearer"}, status=status.HTTP_200_OK)
-        set_jwt_cookie(resp, access_token=access, secure=False, samesite="Lax")
-        # Optional: also return bearer in body if your frontend prefers Authorization header usage
+        resp = Response(
+            {"user": UserSerializer(user).data, "token_type": "Bearer"},
+            status=status.HTTP_200_OK
+        )
+        set_jwt_cookie(resp, access_token=access)
         resp.data["access"] = access
         resp.data["refresh"] = str(refresh)
         return resp
@@ -80,3 +129,41 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+# -------------------------
+# ADMIN: Organizer Approval
+# -------------------------
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    @action(detail=True, methods=['post'])
+    def approve_organizer(self, request, pk=None):
+        user = self.get_object()
+        if user.role == User.Role.ORGANIZER and user.status == User.Status.PENDING:
+            user.approve_organizer(request.user)
+            return Response(
+                {"message": f"Organizer {user.name} approved."},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {"error": "User is not a pending organizer."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    @action(detail=True, methods=['post'])
+    def reject_organizer(self, request, pk=None):
+        user = self.get_object()
+        if user.role == User.Role.ORGANIZER and user.status == User.Status.PENDING:
+            user.reject_organizer(request.user)
+            return Response(
+                {"message": f"Organizer {user.name} rejected."},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {"error": "User is not a pending organizer."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
