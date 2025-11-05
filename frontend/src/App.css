@@ -3,7 +3,6 @@
      Keep padding so content doesn't touch the viewport edges */
   width: 100%;
   box-sizing: border-box;
-  padding: 2rem;
   text-align: left;
 }
 

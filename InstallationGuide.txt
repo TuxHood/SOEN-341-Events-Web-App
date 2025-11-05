@@ -45,6 +45,27 @@ if (Test-Path requirements.txt) {
 & '.\.venv\Scripts\python.exe' manage.py runserver 8000
 ```
 
+If you hit migration-related errors that indicate the database schema is inconsistent with the migrations (for example: "no such column: \"start_at\""), it's often easiest on a local dev machine to remove the local SQLite file and re-run migrations from scratch. WARNING: this will delete local data in the SQLite DB.
+
+PowerShell one-liner (safe for local development only — destructive):
+```powershell
+Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force -ErrorAction SilentlyContinue; Set-Location backend\collegeEventsWeb; & '.\.venv\Scripts\Activate.ps1'; & '.\.venv\Scripts\python.exe' manage.py migrate --noinput; & '.\.venv\Scripts\python.exe' manage.py createsuperuser
+```
+
+Or run the same steps as separate commands (more readable):
+```powershell
+# delete local sqlite DB
+Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force
+
+# go to project and activate venv
+Set-Location backend\collegeEventsWeb
+& '.\.venv\Scripts\Activate.ps1'
+
+# recreate DB schema and optionally create a superuser
+& '.\.venv\Scripts\python.exe' manage.py migrate --noinput
+& '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
+```
+
 Notes
 - Admin UI: http://127.0.0.1:8000/admin/
 - API roots present in this project: /api/events/, /api/users/, /api/tickets/
