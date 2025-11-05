@@ -43,12 +43,17 @@ useEffect(() => {
   const load = async () => {
     setLoading(true);
     setErr("");
-    try {
-      const data = await fetchEvents({
-        baseUrl: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
-        token: access || null,
-        date: selectedDate || undefined,
-      });
+        try {
+        // Only request a specific date from the API when the UI is in the "today" filter.
+        // When the user selects "upcoming" or "ongoing", we want the server to return
+        // the appropriate set (not limited to the chosen calendar date).
+        const dateToSend = filter === "today" ? (selectedDate || undefined) : undefined;
+
+        const data = await fetchEvents({
+          baseUrl: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
+          token: access || null,
+          date: dateToSend,
+        });
 
       // Normalize API response: support either an array or a paginated { results: [...] } object
       const items = Array.isArray(data) ? data : (data && data.results) ? data.results : [];
@@ -84,7 +89,7 @@ useEffect(() => {
     }
   };
   load();
-}, [access, selectedDate]);
+}, [access, selectedDate, filter]);
 
 
 
