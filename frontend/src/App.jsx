@@ -23,8 +23,9 @@ import TicketQR from "./pages/TicketQR";
 function AppShell() {
   const { pathname } = useLocation();
 
-  // Only show nav on these public routes
-  const showNav = ["/", "/auth/login", "/auth/sign-up"].includes(pathname);
+  // Hide nav only on auth pages (show it everywhere else)
+  const hideNav = ["/auth/login", "/auth/sign-up"];
+  const showNav = !hideNav.includes(pathname);
 
   return (
     <>

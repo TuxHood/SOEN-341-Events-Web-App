@@ -179,7 +179,9 @@ const now = (() => {
 // Today/selected date display
 const today = new Date();
 const todayIso = today.toISOString().split("T")[0];
-const displayDate = selectedDate ? new Date(selectedDate) : today;
+// Use the local-ISO helper so a YYYY-MM-DD string becomes a Date at local midnight
+// (avoids the JS Date("YYYY-MM-DD") UTC-parsing which can shift the day).
+const displayDate = selectedDate ? makeLocalDateFromIso(selectedDate) || today : today;
 const formattedToday = displayDate.toLocaleDateString("en-CA", {
   weekday: "long", month: "long", day: "numeric", year: "numeric",
 });

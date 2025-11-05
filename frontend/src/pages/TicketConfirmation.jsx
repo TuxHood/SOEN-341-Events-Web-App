@@ -24,7 +24,7 @@ export default function TicketConfirmation() {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [eventId]);
 
   if (loading) return <div className="buy-wrap"><div className="buy-loading">Loading…</div></div>;
   if (err) return <div className="buy-wrap"><div className="buy-error">{err}</div></div>;
