@@ -82,9 +82,20 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    # Dev middleware: copy access_token cookie into Authorization header and
+    # perform lightweight role checks for protected paths. Keeps JWT auth
+    # working when the frontend uses httponly cookies in dev.
+    'user_accounts.middleware.RoleAuthorizationMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Dev middleware: copy access_token cookie into Authorization header and
+    # perform lightweight role checks for protected paths. Keeps JWT auth
+    # working when the frontend uses httponly cookies in dev. Placed after
+    # AuthenticationMiddleware so it can override request.user with the
+    # JWT-authenticated user (otherwise Django's AuthenticationMiddleware
+    # would later replace it with AnonymousUser).
+    'user_accounts.middleware.RoleAuthorizationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -192,6 +203,15 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Allow the front-end dev server origins for Django's CSRF origin check
+# (Django requires explicit origins including scheme).
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+]
 
 # Use the custom user model
 AUTH_USER_MODEL = 'user_accounts.User'
