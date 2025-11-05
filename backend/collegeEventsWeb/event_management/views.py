@@ -53,21 +53,27 @@ class EventViewSet(viewsets.ModelViewSet):
         qs = Event.objects.all()
 
         # Optional: filter by a specific date passed as ?date=YYYY-MM-DD
+        # If a date is provided, return events that intersect that date (inclusive).
+        # When filtering by date we do NOT apply the default "end >= now" upcoming-only filter,
+        # because the user wants to see events on that specific date (past or future).
         date_str = self.request.query_params.get("date") or None
         if date_str:
             try:
                 date_obj = datetime.date.fromisoformat(date_str)
-                if start_field:
+                if start_field and end_field:
+                    # events that start on or before the date and end on or after the date
+                    qs = qs.filter(**{f"{start_field}__date__lte": date_obj, f"{end_field}__date__gte": date_obj})
+                elif start_field:
                     qs = qs.filter(**{f"{start_field}__date": date_obj})
                 else:
                     qs = qs.filter(start_time__date=date_obj)
             except Exception:
                 # ignore parse errors and continue with default queryset
                 pass
-
-        # show ongoing/upcoming (end >= now) if end exists
-        if end_field:
-            qs = qs.filter(**{f"{end_field}__gte": now()})
+        else:
+            # show ongoing/upcoming (end >= now) if end exists and no specific date requested
+            if end_field:
+                qs = qs.filter(**{f"{end_field}__gte": now()})
 
         # order by start if it exists, else by pk
         order_field = start_field or "id"
