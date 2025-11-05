@@ -54,9 +54,11 @@ class EventViewSet(viewsets.ModelViewSet):
 
         # Optional: filter by a specific date passed as ?date=YYYY-MM-DD
         # If a date is provided, return events that intersect that date (inclusive).
-        # When filtering by date we do NOT apply the default "end >= now" upcoming-only filter,
-        # because the user wants to see events on that specific date (past or future).
+        # Also support a simple range: ?from=YYYY-MM-DD (start on/after) and ?to=YYYY-MM-DD (start on/before).
         date_str = self.request.query_params.get("date") or None
+        from_str = self.request.query_params.get("from") or None
+        to_str = self.request.query_params.get("to") or None
+
         if date_str:
             try:
                 date_obj = datetime.date.fromisoformat(date_str)
@@ -66,12 +68,33 @@ class EventViewSet(viewsets.ModelViewSet):
                 elif start_field:
                     qs = qs.filter(**{f"{start_field}__date": date_obj})
                 else:
-                    qs = qs.filter(start_time__date=date_obj)
+                    qs = qs.filter(**{"start_time__date": date_obj})
             except Exception:
                 # ignore parse errors and continue with default queryset
                 pass
-        else:
-            # show ongoing/upcoming (end >= now) if end exists and no specific date requested
+
+        if from_str:
+            try:
+                from_obj = datetime.date.fromisoformat(from_str)
+                if start_field:
+                    qs = qs.filter(**{f"{start_field}__date__gte": from_obj})
+                else:
+                    qs = qs.filter(**{"start_time__date__gte": from_obj})
+            except Exception:
+                pass
+
+        if to_str:
+            try:
+                to_obj = datetime.date.fromisoformat(to_str)
+                if start_field:
+                    qs = qs.filter(**{f"{start_field}__date__lte": to_obj})
+                else:
+                    qs = qs.filter(**{"start_time__date__lte": to_obj})
+            except Exception:
+                pass
+
+        # If no date/range was requested, keep the existing behavior of showing ongoing/upcoming (end >= now)
+        if not (date_str or from_str or to_str):
             if end_field:
                 qs = qs.filter(**{f"{end_field}__gte": now()})
 
