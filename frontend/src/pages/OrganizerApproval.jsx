@@ -11,7 +11,7 @@ export default function AdminOrganizerApproval() {
 
   const fetchUsers = async () => {
     try {
-  const res = await api.get("/users/");
+    const res = await api.get("/users/");
       // Prefer known shapes from the backend when available
       const payload = res.data;
       if (Array.isArray(payload)) setUsers(payload);
