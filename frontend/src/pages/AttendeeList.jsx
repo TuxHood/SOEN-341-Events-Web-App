@@ -15,7 +15,7 @@ export default function AttendeeList() {
   const fetchAttendees = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://127.0.0.1:8000/api/events/${eventId}/attendees/`, {
+      const response = await fetch(`/api/events/${eventId}/attendees/`, {
         credentials: 'include',
       });
       
@@ -39,7 +39,7 @@ export default function AttendeeList() {
   };
 
   const handleExportCSV = () => {
-    window.open(`http://127.0.0.1:8000/api/events/${eventId}/attendees/export/`, '_blank');
+  window.open(`/api/events/${eventId}/attendees/export/`, '_blank');
   };
 
   if (loading) {

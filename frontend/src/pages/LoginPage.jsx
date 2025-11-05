@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../components/AuthProvider';
 import { API_ENDPOINTS, apiCall } from '../api/config';
 import api from '../api/apiClient';
 
@@ -31,8 +32,10 @@ export default function LoginPage() {
       // Ensure csrf cookie is present (dev helper) before POSTing
       try {
         // Use the axios instance which sets withCredentials so the cookie is
-        // correctly stored by the browser behind the Vite proxy.
-        await api.get('/csrf/');
+        // correctly stored by the browser behind the Vite proxy. The CSRF
+        // helper is exposed under the `users` include at `/api/users/csrf/`.
+        // Calling `/csrf/` hits the Vite server (dev) and returns 404.
+        await api.get('/users/csrf/');
       } catch (e) {
         // ignore; if csrf endpoint isn't reachable the login may still work
       }
@@ -49,11 +52,16 @@ export default function LoginPage() {
         return;
       }
 
-      // Login success: store token and redirect based on role
-      const user = result.data.user;
+  // Login success: store token and redirect based on role
+  const user = result.data.user;
+  if (setUser) setUser(user);
       // Store access token for API use (frontend may also read cookie set by backend)
       if (result.data.access) {
+        // Persist access token under both keys used across the codebase to
+        // remain backward-compatible with older helpers (`access`) and newer
+        // code (`access_token`).
         localStorage.setItem('access_token', result.data.access);
+        try { localStorage.setItem('access', result.data.access); } catch (e) {}
         // Ensure axios instance also sends the new token for subsequent requests
         try {
           api.defaults.headers.common['Authorization'] = `Bearer ${result.data.access}`;
@@ -63,14 +71,9 @@ export default function LoginPage() {
       }
 
       // route by role, with fallbacks
-      const roleRoute =
-        data?.user?.role === "admin"
-          ? "/admin"
-          : data?.user?.role === "organizer"
-          ? "/organizer"
-          : "/events";
+      const roleRoute = user?.role === "admin" ? "/admin" : user?.role === "organizer" ? "/organizer" : "/events";
 
-      navigate(providerRoute || returnTo || roleRoute);
+      navigate(returnTo || roleRoute);
     } catch (err) {
       setError(err?.message || "Invalid email or password");
     }

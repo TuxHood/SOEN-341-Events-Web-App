@@ -35,13 +35,14 @@ api.interceptors.request.use(async (config) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
       let csrftoken = getCookie('csrftoken');
       if (!csrftoken) {
-        try {
-          // Use window.fetch directly to avoid interceptor recursion
-          await fetch('/api/csrf/', { method: 'GET', credentials: 'include' });
-          csrftoken = getCookie('csrftoken');
-        } catch (e) {
-          // ignore — proceed and let the request fail if CSRF required
-        }
+          try {
+            // Use window.fetch directly to avoid interceptor recursion
+            // The CSRF helper lives under the users include: /api/users/csrf/
+            await fetch(`${base}/users/csrf/`, { method: 'GET', credentials: 'include' });
+            csrftoken = getCookie('csrftoken');
+          } catch (e) {
+            // ignore — proceed and let the request fail if CSRF required
+          }
       }
       if (csrftoken && !config.headers['X-CSRFToken'] && !config.headers['X-CSRF-Token']) {
         config.headers['X-CSRFToken'] = csrftoken;

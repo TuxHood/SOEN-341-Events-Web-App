@@ -1,8 +1,19 @@
 // src/api/auth.js
-const BASE = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+// Compute the API root so callers can use paths like `${API_ROOT}/users/me/`.
+// If VITE_API_URL is set it may or may not include the `/api` suffix. Normalize
+// it so API_ROOT always contains the `/api` segment (or default to the proxy
+// `/api` during local dev).
+const rawApi = import.meta.env.VITE_API_URL;
+let API_ROOT;
+if (rawApi) {
+  const r = rawApi.replace(/\/$/, '');
+  API_ROOT = r.endsWith('/api') ? r : `${r}/api`;
+} else {
+  API_ROOT = '/api';
+}
 
 export async function login(email, password) {
-  const res = await fetch(`${BASE}/api/token/`, {
+  const res = await fetch(`${API_ROOT}/token/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -29,7 +40,7 @@ export async function login(email, password) {
 }
 
 export async function registerStudent(full_name, email, password) {
-  const res = await fetch(`${BASE}/api/users/register/`, {
+  const res = await fetch(`${API_ROOT}/users/register/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -54,7 +65,8 @@ export async function registerStudent(full_name, email, password) {
 
 
 export async function getProfile() {
-  const res = await fetch(`${BASE}/api/users/me/`, {
+  const res = await fetch(`${API_ROOT}/users/me/`, {
+    credentials: 'include',
     headers: { Accept: "application/json", ...authHeaders() },
   });
   if (res.status === 401) return null;         // not logged in / expired
@@ -69,7 +81,8 @@ export function logout() {
 }
 
 export function getAccessToken() {
-  return localStorage.getItem("access") || null;
+  // Support both legacy and newer keys
+  return localStorage.getItem("access") || localStorage.getItem("access_token") || null;
 }
 
 // Use this everywhere for protected requests
@@ -78,4 +91,5 @@ export function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export { BASE };
+// Export a stable `BASE` name for other modules that import it.
+export const BASE = API_ROOT;

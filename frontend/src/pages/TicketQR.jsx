@@ -2,10 +2,10 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 
-const BASE = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
-const api = (p) => `${BASE}${p}`;
+const BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+const api = (p) => `${BASE}${p.startsWith("/") ? "" : "/"}${p}`;
 const authHeaders = () => {
-  const t = localStorage.getItem("access");
+  const t = localStorage.getItem("access") || localStorage.getItem("access_token");
   return t ? { Authorization: `Bearer ${t}` } : {};
 };
 
@@ -18,7 +18,8 @@ export default function TicketQR() {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch(api(`/api/tickets/${tid}/`), {
+        const res = await fetch(api(`/tickets/${tid}/`), {
+          credentials: 'include',
           headers: { "Content-Type": "application/json", ...authHeaders() },
         });
         if (!res.ok) throw new Error(await res.text());

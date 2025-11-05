@@ -53,7 +53,7 @@ useEffect(() => {
         const fromToSend = (filter === "upcoming") ? (selectedDate || undefined) : undefined;
 
         const data = await fetchEvents({
-          baseUrl: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
+          baseUrl: import.meta.env.VITE_API_URL || "/api",
           token: access || null,
           date: dateToSend,
           from: fromToSend,

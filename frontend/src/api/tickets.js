@@ -17,8 +17,9 @@ async function requireOk(res) {
 }
 
 export async function buyTicket(eventId) {
-  const res = await fetch(api(`/api/events/${eventId}/buy/`), {
+  const res = await fetch(api(`/events/${eventId}/buy/`), {
     method: "POST",
+    credentials: 'include',
     headers: { "Content-Type": "application/json", ...authHeaders() },
   });
 
@@ -36,22 +37,25 @@ export async function buyTicket(eventId) {
 }
 
 export async function getMyTickets() {
-  const res = await fetch(api(`/api/me/tickets/`), {
+  const res = await fetch(api(`/me/tickets/`), {
+    credentials: 'include',
     headers: { Accept: "application/json", ...authHeaders() },
   }).then(requireOk);
   return res.json();
 }
 
 export async function getTicketByEvent(eventId) {
-  const res = await fetch(api(`/api/events/${eventId}/ticket/`), {
+  const res = await fetch(api(`/events/${eventId}/ticket/`), {
+    credentials: 'include',
     headers: { Accept: "application/json", ...authHeaders() },
   }).then(requireOk);
   return res.json();
 }
 
 export async function cancelTicket(eventId) {
-  const res = await fetch(api(`/api/events/${eventId}/cancel/`), {
+  const res = await fetch(api(`/events/${eventId}/cancel/`), {
     method: "POST",
+    credentials: 'include',
     headers: { "Content-Type": "application/json", ...authHeaders() },
   });
   if (!res.ok) throw new Error(await res.text());
@@ -59,7 +63,8 @@ export async function cancelTicket(eventId) {
 }
 
 export async function getTicketById(ticketId) {
-  const res = await fetch(api(`/api/tickets/${ticketId}/`), {
+  const res = await fetch(api(`/tickets/${ticketId}/`), {
+    credentials: 'include',
     headers: { Accept: "application/json", ...authHeaders() },
   }).then(requireOk);
   return res.json();
