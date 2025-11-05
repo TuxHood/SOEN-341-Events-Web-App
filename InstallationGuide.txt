@@ -5,8 +5,16 @@ This quick guide gets a teammate from a fresh clone to a running local dev envir
 Prerequisites
 - Node.js (LTS), Python 3.11+ (3.12 recommended), Git.
 - Optional: PostgreSQL for DB testing; the project defaults to SQLite for local dev.
+Quickstart — React (Vite) + Django REST (PowerShell-friendly)
+
+This short guide helps a teammate get the project running locally on Windows PowerShell. It focuses on the common, copy-pasteable steps for a developer machine.
+
+Prerequisites
+- Node.js (LTS), Python 3.11+ (3.12 recommended), Git
+- Optional: PostgreSQL (the project defaults to SQLite for local dev)
 
 1) Clone and open the repo
+
 ```powershell
 git clone <repo-url>
 cd SOEN-341-Events-Web-App
@@ -14,7 +22,11 @@ code .
 ```
 
 2) Backend quickstart (Django)
-- Create and activate the venv (one-time per machine):
+
+Follow these steps from the repo root. If you prefer automation, the `scripts/start-backend.ps1` script runs the same steps.
+
+- Create and activate a venv (one-time per machine):
+
 ```powershell
 cd backend\collegeEventsWeb
 # create venv if missing
@@ -23,7 +35,8 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-- Install dependencies (manual; the `scripts/start-backend.ps1` also automates this):
+- Install dependencies:
+
 ```powershell
 & '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
 if (Test-Path requirements.txt) {
@@ -33,7 +46,8 @@ if (Test-Path requirements.txt) {
 }
 ```
 
-- Apply migrations and create a superuser (interactive):
+- Apply migrations and create an admin (interactive):
+
 ```powershell
 & '.\.venv\Scripts\python.exe' manage.py makemigrations
 & '.\.venv\Scripts\python.exe' manage.py migrate --noinput
@@ -41,18 +55,21 @@ if (Test-Path requirements.txt) {
 ```
 
 - Start the dev server:
+
 ```powershell
 & '.\.venv\Scripts\python.exe' manage.py runserver 8000
 ```
 
-If you hit migration-related errors that indicate the database schema is inconsistent with the migrations (for example: "no such column: \"start_at\""), it's often easiest on a local dev machine to remove the local SQLite file and re-run migrations from scratch. WARNING: this will delete local data in the SQLite DB.
+If you encounter migration errors (for example: "no such column: \"start_at\"") it's often because your local SQLite file and the migration files have diverged. On a local dev machine one safe option is to remove the local SQLite DB and re-run migrations from scratch. WARNING: this deletes local data.
 
-PowerShell one-liner (safe for local development only — destructive):
+PowerShell one-liner (destructive; local dev only):
+
 ```powershell
 Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force -ErrorAction SilentlyContinue; Set-Location backend\collegeEventsWeb; & '.\.venv\Scripts\Activate.ps1'; & '.\.venv\Scripts\python.exe' manage.py migrate --noinput; & '.\.venv\Scripts\python.exe' manage.py createsuperuser
 ```
 
-Or run the same steps as separate commands (more readable):
+Or run the same steps separately for clarity:
+
 ```powershell
 # delete local sqlite DB
 Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force
@@ -66,31 +83,43 @@ Set-Location backend\collegeEventsWeb
 & '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
 ```
 
-Notes
+Quick notes
 - Admin UI: http://127.0.0.1:8000/admin/
-- API roots present in this project: /api/events/, /api/users/, /api/tickets/
+- API roots: /api/events/, /api/users/, /api/tickets/
 
 3) Frontend quickstart (Vite + React)
-- In a separate terminal (repo root):
+
+Open a second terminal (repo root) and run:
+
 ```powershell
 cd frontend
 npm install   # first run only
 npm run dev
 ```
-- Vite runs at http://localhost:5173 by default (may use 5174 if 5173 is busy).
+
+Vite runs at http://localhost:5173 by default (may use 5174 if 5173 is busy). The frontend is configured to proxy `/api` → `http://localhost:8000`.
 
 4) Helper scripts (recommended)
-- Use the repo helper scripts to start dev servers quickly:
+
+Use the provided helper scripts to simplify common developer tasks (they activate venvs, install missing deps, etc.):
+
 ```powershell
 # from repo root
 .\scripts\start-backend.ps1
 .\scripts\start-frontend.ps1  # in a second terminal
 ```
 
-5) Admin & create_admin patterns (safe)
-- Interactive (recommended):
-  - `manage.py createsuperuser` — prompts for email/name/password.
-- Non-interactive automation pattern (session env vars, recommended over hardcoding):
+5) Admin account patterns (safe)
+
+Interactive (recommended):
+
+```powershell
+# run from backend\collegeEventsWeb with the venv activated
+& '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
+```
+
+Non-interactive pattern (use env vars or a secret store; avoid hardcoding passwords):
+
 ```powershell
 # set session vars (or read from secret manager)
 $env:NEW_ADMIN_EMAIL='admin@example.com'
@@ -122,10 +151,12 @@ else:
 PY
 ```
 
-- There is a `create_admin.py` template in the repo root — do not commit passwords into it. Prefer reading secrets from the environment or a secure vault.
+There is also a `create_admin.py` template in the repo root — do not commit secrets into it. Prefer environment variables or a secret manager.
 
-6) Discovering routes (list all URL patterns)
-- Option A — django-extensions (dev only):
+6) Discovering routes (list URL patterns)
+
+Option A — install `django-extensions` (dev only):
+
 ```powershell
 cd backend\collegeEventsWeb
 .\.venv\Scripts\Activate.ps1
@@ -134,7 +165,8 @@ cd backend\collegeEventsWeb
 & '.\.venv\Scripts\python.exe' manage.py show_urls
 ```
 
-- Option B — inline (no extra deps):
+Option B — inline (no extra deps):
+
 ```powershell
 cd backend\collegeEventsWeb
 .\.venv\Scripts\Activate.ps1
@@ -148,50 +180,69 @@ for p in get_resolver().url_patterns:
 PY
 ```
 
-- Option C — add DRF OpenAPI + docs (I can add `/openapi/` and `/docs/` for a browsable API catalog).
-
 7) How to call the API
-- Use browser (DRF browsable UI) or curl / Invoke-RestMethod:
+
+Use the browser (DRF browsable API), curl, or PowerShell's `Invoke-RestMethod` for quick checks:
+
 ```powershell
 Invoke-RestMethod -Uri http://127.0.0.1:8000/api/events/ -Method GET
 ```
-- Login via API:
-POST to `/api/users/login` with JSON `{"email":"...","password":"..."}` — the project returns tokens and sets an HttpOnly cookie as configured.
 
-8) Troubleshooting (PowerShell tips)
-- Allow activation for session if blocked:
+Login via API (example): POST to `/api/users/login` with JSON `{"email":"...","password":"..."}` — the backend returns tokens and sets an HttpOnly cookie as configured.
+
+8) Troubleshooting tips
+
+- If venv activation is blocked, allow it for your session:
+
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
 . .\.venv\Scripts\Activate.ps1
 ```
-- Recreate a broken venv:
+
+- To recreate a broken venv:
+
 ```powershell
 Remove-Item -Recurse -Force .\.venv
 python -m venv .venv
 & '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
 & '.\.venv\Scripts\pip.exe' install -r requirements.txt
 ```
-- Ensure temp scripts are UTF-8 without BOM when piping into `manage.py shell`:
-```powershell
-[System.IO.File]::WriteAllText('create_admin.py', $scriptContents, (New-Object System.Text.UTF8Encoding($false)))
-```
+
+- CSRF cookie issues (common when frontend calls backend directly):
+  - Prefer using Vite's proxy (default) so the browser treats API requests as same-origin.
+  - If you call the backend directly on `http://localhost:8000`, ensure `CORS_ALLOW_CREDENTIALS = True` and set cookie SameSite/secure flags correctly in `settings.py` (dev-only changes may be needed).
+
+- If migrations fail because migrations and DB are out of sync, follow the "delete DB and recreate" steps above (dev-only, destructive) or fake-apply migrations if you need to preserve data.
 
 9) Improvements I can add (pick one)
-- Convert `create_admin.py` into a management command `manage.py create_admin --email ...` (recommended).
-- Add DRF OpenAPI + docs endpoints (`/openapi/`, `/docs/`).
-- Add a custom management command `show_urls` to print a friendly list of routes.
 
-Tell me which improvement you want and I will implement and verify it locally.
+- Convert `create_admin.py` into a management command: `manage.py create_admin --email ...` (recommended)
+- Add DRF OpenAPI + docs endpoints (`/openapi/`, `/docs/`)
+- Add a management command to print friendly routes
+
+If you'd like, tell me which improvement to implement and I will make the change and verify it locally.
 
 --
 
-Quick demo: the repository now provides a management command and a safe PowerShell wrapper.
+Quicker commands reference (copy-paste)
 
-1) Direct (management command)
 ```powershell
-cd backend\collegeEventsWeb
-.\.venv\Scripts\Activate.ps1
-& '.\.venv\Scripts\python.exe' manage.py create_admin --email admin@concordia.ca --name 'Admin Concordia'
+# activate backend venv
+Set-Location backend\collegeEventsWeb
+& '.\.venv\Scripts\Activate.ps1'
+
+# run migrations
+& '.\.venv\Scripts\python.exe' manage.py migrate --noinput
+
+# create admin (interactive)
+& '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
+
+# start frontend (in a separate terminal)
+Set-Location frontend
+npm install
+npm run dev
+```
+
 # Omit --password to be prompted securely.
 ```
 
