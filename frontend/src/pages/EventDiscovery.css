@@ -180,24 +180,34 @@
   position: relative;
 }
 
-.claim-btn {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  margin-top: 1rem;
+.modal-content .claim-btn,
+.modal-content .close-btn {
+  width: 120px;            /* make both buttons same width */
+  height: 40px;            /* same height */
+  border-radius: 8px;      /* smooth rounded edges */
   cursor: pointer;
-  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
 }
 
-.close-btn {
-  background: #f44336;
+.modal-content .claim-btn {
+  background-color: #28a745; /* green */
   color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  margin-left: 1rem;
-  cursor: pointer;
-  border-radius: 4px;
+}
+
+.modal-content .close-btn {
+  background-color: #dc3545; /* red */
+  color: white;
+}
+
+.modal-content .claim-btn:hover,
+.modal-content .close-btn:hover {
+  opacity: 0.85;            /* soft hover effect */
+}
+
+.modal-content div[style] {
+  justify-content: center;  /* center both buttons */
 }
 .header-right {
   display: flex;

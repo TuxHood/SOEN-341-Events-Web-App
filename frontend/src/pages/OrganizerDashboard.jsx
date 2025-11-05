@@ -117,7 +117,17 @@ export default function OrganizerDashboard() {
                     </Link>
                     
                     <Link to={`/events/${event.id}/attendees`} style={{ textDecoration: 'none' }}>
-                      <button className="btn btn-primary" style={{ width: '100%', padding: '12px 24px', fontSize: '15px' }}>
+                      <button
+                        className="btn btn-primary"
+                        style={{
+                          width: '100%',
+                          padding: '12px 24px',
+                          fontSize: '15px',
+                          background: '#000',
+                          color: '#fff',
+                          border: 'none'
+                        }}
+                      >
                         View Attendee List
                       </button>
                     </Link>

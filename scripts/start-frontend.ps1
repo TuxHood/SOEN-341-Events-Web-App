@@ -30,5 +30,11 @@ if (-Not (Test-Path -Path $axiosPkgPath)) {
     npm install axios --save
 }
 
+# Ensure qrcode.react is installed for Ticket QR components
+$qrcodePkgPath = Join-Path 'node_modules' 'qrcode.react'
+if (-Not (Test-Path -Path $qrcodePkgPath)) {
+    Write-Host "Detected missing package 'qrcode.react' - installing..."
+    npm install qrcode.react --save
+}
 Write-Host "Starting Vite dev server"
 npm run dev
