@@ -1,5 +1,4 @@
-from rest_framework import status, permissions, viewsets
-from rest_framework import status, permissions, serializers as drf_serializers
+from rest_framework import status, permissions, viewsets, serializers as drf_serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
