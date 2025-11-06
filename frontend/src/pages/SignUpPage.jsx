@@ -55,7 +55,12 @@ export default function SignUpPage() {
   setLoading(true);
   try {
     // Our API expects full_name, email, password at /api/users/register/
-    await registerStudent(formData.name, formData.email, formData.password);
+    if (step === 'organizer') {
+      // include role so backend creates a pending organizer account
+      await registerStudent(formData.name, formData.email, formData.password, 'organizer');
+    } else {
+      await registerStudent(formData.name, formData.email, formData.password);
+    }
 
     if (step === 'organizer') {
       alert(

@@ -26,6 +26,7 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             "id",
+            "organizer",
             "title",
             "description",
             "start_time",   
@@ -36,7 +37,7 @@ class EventSerializer(serializers.ModelSerializer):
             "category_name",
             "image_url",
         ]
-        read_only_fields = ["organizer_name", "category_name", "image_url"]
+    read_only_fields = ["organizer_name", "category_name", "image_url", "organizer"]
 
     # ---- helpers ----
     def get_organizer_name(self, obj):
@@ -82,7 +83,8 @@ class TicketSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ticket
-        fields = ["id", "event", "owner", "qr", "is_used", "qr_png_url"]
+        # expose the new status and checked_in_at fields; keep is_used for compatibility
+        fields = ["id", "event", "owner", "qr", "is_used", "status", "checked_in_at", "qr_png_url"]
         extra_kwargs = {"owner": {"write_only": True}}
 
     def get_qr_png_url(self, obj):

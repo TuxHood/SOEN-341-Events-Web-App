@@ -13,7 +13,8 @@ import datetime
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.authentication import SessionAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .models import Event, Category, Venue, Ticket
@@ -39,6 +40,9 @@ def _first_existing_field(model, *candidates):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+    # Allow JWT or session authentication; read-only access is public but create/update requires auth
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     # ensure EventSerializer gets request in context (for absolute image_url)
     def get_serializer(self, *args, **kwargs):
@@ -51,6 +55,13 @@ class EventViewSet(viewsets.ModelViewSet):
         end_field   = _first_existing_field(Event, "end_at", "end_time")
 
         qs = Event.objects.all()
+
+        # If caller requests organizer's own events, support ?organizer=me
+        org_filter = self.request.query_params.get('organizer') or None
+        if org_filter == 'me':
+            if not self.request.user or not self.request.user.is_authenticated:
+                return Event.objects.none()
+            qs = qs.filter(organizer=self.request.user)
 
         # Optional: filter by a specific date passed as ?date=YYYY-MM-DD
         # If a date is provided, return events that intersect that date (inclusive).
@@ -110,7 +121,11 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
         # ticket related_name in this project is `event_management_tickets`
         total_tickets = event.event_management_tickets.count()
-        checked_in = event.event_management_tickets.filter(is_used=True).count()
+        # prefer explicit status where available
+        checked_in = event.event_management_tickets.filter(status=Ticket.CHECKED_IN).count()
+        pending = event.event_management_tickets.filter(status=Ticket.PENDING).count()
+        no_show = event.event_management_tickets.filter(status=Ticket.NO_SHOW).count()
+        cancelled = event.event_management_tickets.filter(status=Ticket.CANCELLED).count()
 
         # Event model may not have a Venue relation in this fork; be defensive.
         venue_obj = getattr(event, 'venue', None)
@@ -130,12 +145,34 @@ class EventViewSet(viewsets.ModelViewSet):
             'event_title': event.title,
             'tickets_issued': total_tickets,
             'tickets_checked_in': checked_in,
-            'tickets_pending': total_tickets - checked_in,
+            'tickets_pending': pending,
+            'tickets_no_show': no_show,
+            'tickets_cancelled': cancelled,
             'venue_capacity': venue_capacity,
             'remaining_capacity': remaining_capacity,
             'check_in_percentage': round(check_in_percentage, 2),
             'capacity_utilization': round(capacity_utilization, 2),
         })
+
+    def create(self, request, *args, **kwargs):
+        """
+        Assign the requesting user as the organizer when creating an Event.
+        """
+        if not request.user or not request.user.is_authenticated:
+            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+        # Only organizers or admins may create events
+        user_role = getattr(request.user, 'role', '')
+        if user_role != 'organizer' and user_role != 'admin':
+            return Response({'detail': 'Only organizers may create events.'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # Save with organizer set to requesting user
+        event = serializer.save(organizer=request.user)
+        headers = self.get_success_headers(serializer.data)
+        # reserialize for response (include organizer id)
+        out_ser = self.get_serializer(event)
+        return Response(out_ser.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @action(detail=True, methods=['get'], url_path='attendees')
     def attendees(self, request, pk=None):
@@ -156,8 +193,9 @@ class EventViewSet(viewsets.ModelViewSet):
             'ticket_id': str(t.id),
             'name': getattr(t.owner, "name", ""),
             'email': getattr(t.owner, "email", ""),
-            'is_checked_in': t.is_used,
-            'check_in_time': t.created_at if t.is_used else None,
+            'status': getattr(t, 'status', 'PENDING'),
+            'is_checked_in': getattr(t, 'status', None) == Ticket.CHECKED_IN,
+            'check_in_time': getattr(t, 'checked_in_at', None),
             'qr_code': getattr(t, "qr_code", None),
         } for t in tickets]
 
@@ -325,3 +363,41 @@ def cancel_ticket(request, event_id: int):
         return Response({"detail": "No ticket for this event."}, status=404)
     ticket.delete()
     return Response({"detail": "Registration cancelled."}, status=200)
+
+
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def checkin_ticket(request, ticket_id):
+    """
+    POST /api/tickets/<uuid:ticket_id>/checkin/ — mark a ticket as checked-in.
+    Only the event organizer or an admin may perform this action.
+    Request body may be empty; ticket id is in the URL.
+    """
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    event = getattr(ticket, "event", None)
+
+    # permission: organizer of the event or admin
+    if request.user.is_authenticated and getattr(event, "organizer_id", None) != request.user.id:
+        if getattr(request.user, "role", "") != 'admin':
+            return Response({"detail": "You do not have permission to check in this ticket."}, status=status.HTTP_403_FORBIDDEN)
+
+    # Do not check-in cancelled or no-show tickets
+    if getattr(ticket, "status", None) == Ticket.CANCELLED:
+        return Response({"detail": "Ticket is cancelled."}, status=status.HTTP_400_BAD_REQUEST)
+    if getattr(ticket, "status", None) == Ticket.NO_SHOW:
+        return Response({"detail": "Ticket already marked as no-show."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Already checked in -> return current state
+    if getattr(ticket, "status", None) == Ticket.CHECKED_IN:
+        ser = TicketSerializer(ticket, context={"request": request})
+        return Response({"detail": "Already checked in.", "ticket": ser.data}, status=status.HTTP_200_OK)
+
+    # mark checked in
+    ticket.status = Ticket.CHECKED_IN
+    ticket.checked_in_at = now()
+    ticket.is_used = True  # keep backward compatibility
+    ticket.save()
+
+    ser = TicketSerializer(ticket, context={"request": request})
+    return Response({"detail": "Checked in.", "ticket": ser.data}, status=status.HTTP_200_OK)

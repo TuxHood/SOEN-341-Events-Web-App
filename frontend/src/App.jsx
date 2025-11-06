@@ -12,9 +12,12 @@ import EventDiscovery from "./pages/EventDiscovery";
 import EventAnalyticsDashboard from "./pages/EventAnalyticsDashboard";
 import OrganizerApproval from "./pages/OrganizerApproval";
 import AttendeeList from "./pages/AttendeeList";
+import OrganizerScan from "./pages/OrganizerScan";
 
 import AuthProvider from "./components/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
+import OrganizerRoute from "./components/OrganizerRoute";
+import { useAuth } from "./components/AuthProvider";
 import TicketConfirmation from "./pages/TicketConfirmation";
 import BuyTicket from "./pages/BuyTicket";
 import MyTickets from "./pages/MyTickets";
@@ -22,6 +25,8 @@ import TicketQR from "./pages/TicketQR";
 
 function AppShell() {
   const { pathname } = useLocation();
+  const auth = useAuth();
+  const userRole = auth?.user?.role;
 
   // Hide nav on auth pages
   const hideNav = ["/auth/login", "/auth/sign-up"];
@@ -34,15 +39,22 @@ function AppShell() {
           <Link to="/" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
             Home
           </Link>
-          <Link to="/organizer" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-            Organizer
-          </Link>
+          {userRole === 'organizer' && (
+            <Link to="/organizer" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
+              Organizer
+            </Link>
+          )}
           <Link to="/admin/organizer-approval" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
             Organizer Approval
           </Link>
           <Link to="/events/1/analytics" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-            📊 Analytics
+            Analytics
           </Link>
+          {userRole === 'organizer' && (
+            <Link to="/organizer/scan" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
+              Scan Tickets
+            </Link>
+          )}
           <Link to="/auth/login" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
             Login
           </Link>
@@ -54,7 +66,7 @@ function AppShell() {
         <Route path="/" element={<Home />} />
         <Route path="/events/:eventId" element={<EventDetail />} />
         <Route path="/events/:eventId/analytics" element={<EventAnalyticsDashboard />} />
-        <Route path="/organizer" element={<OrganizerDashboard />} />
+  <Route path="/organizer" element={<OrganizerRoute><OrganizerDashboard /></OrganizerRoute>} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/sign-up" element={<SignUpPage />} />
@@ -74,6 +86,7 @@ function AppShell() {
         <Route path="/events/:eventId/attendees" element={<AttendeeList />} />
         <Route path="/events" element={<EventDiscovery />} />
         <Route path="/admin/organizer-approval" element={<OrganizerApproval />} />
+  <Route path="/organizer/scan" element={<OrganizerRoute><OrganizerScan /></OrganizerRoute>} />
       </Routes>
     </>
   );

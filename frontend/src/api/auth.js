@@ -39,15 +39,18 @@ export async function login(email, password) {
   };
 }
 
-export async function registerStudent(full_name, email, password) {
+export async function registerStudent(full_name, email, password, role = undefined) {
+  const payload = {
+    name: full_name,
+    email,
+    password,
+  };
+  if (role) payload.role = role;
+
   const res = await fetch(`${API_ROOT}/users/register/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: full_name,
-      email,
-      password,
-    }),
+    body: JSON.stringify(payload),
   });
 
   const text = await res.text();

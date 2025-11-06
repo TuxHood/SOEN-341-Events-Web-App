@@ -27,6 +27,14 @@ class Event(models.Model):
     description = models.TextField(blank=True)
     organization = models.CharField(max_length=120)
     category = models.CharField(max_length=50)
+    # Link an Event to an organizer user (optional for existing records)
+    organizer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='organized_events'
+    )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     image_url = models.URLField(blank=True)
@@ -72,6 +80,22 @@ class Ticket(models.Model):
     )
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="event_management_tickets_owned")
     qr = models.ImageField(upload_to="qr_codes/", null=True, blank=True)  # ✅ new field
+    # Ticket lifecycle status: Pending = not yet checked in, CHECKED_IN, NO_SHOW, CANCELLED
+    PENDING = "PENDING"
+    CHECKED_IN = "CHECKED_IN"
+    NO_SHOW = "NO_SHOW"
+    CANCELLED = "CANCELLED"
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (CHECKED_IN, "Checked In"),
+        (NO_SHOW, "No Show"),
+        (CANCELLED, "Cancelled"),
+    ]
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+
+    # backward-compatible convenience flag kept for older code paths
     is_used = models.BooleanField(default=False)
 
     def __str__(self):
