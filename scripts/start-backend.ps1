@@ -65,8 +65,16 @@ if (Test-Path -Path $requirementsPath) {
 
 Set-Location -Path $projectDir
 
+Write-Host "Checking for model changes (no files will be written)..."
+& $venvPython manage.py makemigrations --check --dry-run
+if ($LASTEXITCODE -eq 1) {
+    Write-Host "Model changes detected -> generating migrations..."
+    & $venvPython manage.py makemigrations
+} else {
+    Write-Host "No model changes detected. Skipping makemigrations."
+}
+
 Write-Host "Applying migrations (if any)..."
-& $venvPython manage.py makemigrations
 & $venvPython manage.py migrate --noinput
 
 Write-Host "Starting Django dev server on 8000 (project: $projectDir)"

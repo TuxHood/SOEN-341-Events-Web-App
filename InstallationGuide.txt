@@ -46,12 +46,20 @@ if (Test-Path requirements.txt) {
 }
 ```
 
-- Apply migrations and create an admin (interactive):
+ - Apply migrations and create an admin (interactive):
 
 ```powershell
-& '.\.venv\Scripts\python.exe' manage.py makemigrations
 & '.\.venv\Scripts\python.exe' manage.py migrate --noinput
 & '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
+```
+
+Optional — only if you changed models locally and need new migrations:
+
+```powershell
+# See if model changes exist without writing files
+& '.\.venv\Scripts\python.exe' manage.py makemigrations --check --dry-run
+# If the previous command exits with code 1 (changes detected), then generate migrations:
+& '.\.venv\Scripts\python.exe' manage.py makemigrations
 ```
 
 - Start the dev server:
@@ -60,7 +68,7 @@ if (Test-Path requirements.txt) {
 & '.\.venv\Scripts\python.exe' manage.py runserver 8000
 ```
 
-If you encounter migration errors (for example: "no such column: \"start_at\"") it's often because your local SQLite file and the migration files have diverged. On a local dev machine one safe option is to remove the local SQLite DB and re-run migrations from scratch. WARNING: this deletes local data.
+If you encounter migration errors (for example: "no such column: \"start_at\"" or attempts to drop a column that doesn't exist), it's often because your local SQLite file and the migration files have diverged. On a local dev machine one safe option is to remove the local SQLite DB and re-run migrations from scratch. WARNING: this deletes local data.
 
 PowerShell one-liner (destructive; local dev only):
 
