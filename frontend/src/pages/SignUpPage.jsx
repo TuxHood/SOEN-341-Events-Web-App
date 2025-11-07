@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SignUpPage.css';
-import { registerStudent } from '../api/auth';
+import { registerStudent, registerOrganizer } from '../api/auth';
 
 
 export default function SignUpPage() {
@@ -54,17 +54,13 @@ export default function SignUpPage() {
 
   setLoading(true);
   try {
-    // Our API expects full_name, email, password at /api/users/register/
-    await registerStudent(formData.name, formData.email, formData.password);
-
+    // Send the correct role to the backend so organizer doesn't default to student
     if (step === 'organizer') {
-      alert(
-        'Success! Your organizer account is pending approval. You will receive an email once approved.'
-      );
+      await registerOrganizer(formData.name, formData.email, formData.password);
+      alert('Success! Your organizer account is pending approval. You can log in after an admin approves it.');
     } else {
-      alert(
-        'Success! Your account has been created. You can now log in.'
-      );
+      await registerStudent(formData.name, formData.email, formData.password);
+      alert('Success! Your student account has been created. You can now log in.');
     }
 
     navigate('/auth/login');

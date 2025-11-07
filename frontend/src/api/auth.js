@@ -47,6 +47,35 @@ export async function registerStudent(full_name, email, password) {
       name: full_name,
       email,
       password,
+      // Explicitly set student role to be unambiguous
+      role: "student",
+    }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    try {
+      const data = JSON.parse(text);
+      throw new Error(data.detail || JSON.stringify(data));
+    } catch {
+      throw new Error(text || "Registration failed");
+    }
+  }
+
+  return JSON.parse(text);
+}
+
+// Register an organizer account. Backend will set status=pending for organizer role
+// and require admin approval before activation.
+export async function registerOrganizer(full_name, email, password) {
+  const res = await fetch(`${API_ROOT}/users/register/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: full_name,
+      email,
+      password,
+      role: "organizer",
     }),
   });
 

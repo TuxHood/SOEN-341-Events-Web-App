@@ -134,6 +134,7 @@ export default function AdminDashboard() {
 
       <div className="mt-6 flex items-center gap-4">
         <Link to="/admin/approvals" className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">Organizer Event Approvals & Venues</Link>
+        <Link to="/admin/organizer-approval" className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">Organizer Account Approvals</Link>
         <Link to="/events" className="text-indigo-600 hover:underline">Back to Events</Link>
       </div>
     </div>

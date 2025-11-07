@@ -42,25 +42,35 @@ function AppShell() {
     <>
       {showNav && (
         <nav style={{ padding: 10, borderBottom: "1px solid #ddd", textAlign: "center" }}>
-          <Link to="/" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-            Home
-          </Link>
-          {isOrganizer && (
+          {/* Primary nav:
+              - Admin: show Dashboard -> /admin
+              - Regular users (non-organizer): show Home -> /
+              - Organizer (non-admin): hide Home per request */}
+          {isAdmin ? (
+            <Link
+              to="/admin"
+              style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}
+            >
+              Dashboard
+            </Link>
+          ) : (!isOrganizer && (
+            <Link
+              to="/"
+              style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}
+            >
+              Home
+            </Link>
+          ))}
+
+          {/* Organizer link visible for organizers only (not admins) */}
+          {!isAdmin && isOrganizer && (
             <Link to="/organizer" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
               Organizer
             </Link>
           )}
-          {/* Show admin-only links only to admins/staff */}
-          {isAdmin && (
-            <>
-              <Link to="/admin/organizer-approval" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-                Organizer Approval
-              </Link>
-              <Link to="/events/1/analytics" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-                📊 Analytics
-              </Link>
-            </>
-          )}
+
+          {/* Admin-specific top menu items intentionally removed per request */}
+
           <Link to="/auth/login" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
             Login
           </Link>

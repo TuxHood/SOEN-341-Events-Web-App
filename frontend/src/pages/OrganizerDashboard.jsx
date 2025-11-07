@@ -106,11 +106,6 @@ export default function OrganizerDashboard() {
           <p style={{ color: '#6b7280', fontSize: '16px' }}>
             Manage your events and track attendance
           </p>
-          <div style={{ marginTop: 12 }}>
-            <Link to="/tickets/scan" style={{ textDecoration: 'none' }}>
-              <button className="btn" style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff' }}>Open Ticket Scanner</button>
-            </Link>
-          </div>
         </div>
       </div>
 
