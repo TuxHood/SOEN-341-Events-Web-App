@@ -10,8 +10,8 @@ from .views import (
     buy_ticket,
     get_ticket_for_event,
     cancel_ticket,
-    MyTicketsList,
     checkin_ticket,
+    MyTicketsList,
 )
 from .analytics_views import global_analytics  # from main
 
@@ -36,8 +36,9 @@ urlpatterns = [
     path('events/<int:event_id>/ticket/', get_ticket_for_event, name='get_ticket_for_event'),
     path('events/<int:event_id>/cancel/', cancel_ticket, name='cancel_ticket'),
 
+    # Ticket check-in by ticket id (used by QR scanner tools)
+    path('tickets/<uuid:ticket_id>/checkin/', checkin_ticket, name='checkin_ticket'),
+
     # My tickets (class-based)
     path('me/tickets/', MyTicketsList.as_view(), name='my_tickets'),
-    # Check-in by ticket UUID (organizer/admin)
-    path('tickets/<uuid:ticket_id>/checkin/', checkin_ticket, name='checkin_ticket'),
 ]

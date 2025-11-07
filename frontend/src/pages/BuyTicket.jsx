@@ -119,9 +119,15 @@ export default function BuyTicket() {
           {err && <div className="buy-error" style={{marginTop: 12}}>{err}</div>}
 
           <div className="buy-actions">
-            <button className="buy-btn buy-confirm" onClick={onConfirm} disabled={busy}>
-              {busy ? "Processing…" : "Confirm purchase"}
-            </button>
+            {event.is_approved === false ? (
+              <div style={{ padding: 12, background: '#fff7ed', color: '#92400e', borderRadius: 8 }}>
+                This event is pending approval and is not open for registration.
+              </div>
+            ) : (
+              <button className="buy-btn buy-confirm" onClick={onConfirm} disabled={busy}>
+                {busy ? "Processing…" : "Confirm purchase"}
+              </button>
+            )}
             <button className="buy-btn buy-cancel" onClick={() => nav(-1)} disabled={busy}>
               Cancel
             </button>

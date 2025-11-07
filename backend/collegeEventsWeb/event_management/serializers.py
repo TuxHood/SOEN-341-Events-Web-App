@@ -18,15 +18,20 @@ class VenueSerializer(serializers.ModelSerializer):
         fields = '__all__'
 class EventSerializer(serializers.ModelSerializer):
     # Read-only extras for the UI
+    organizer = serializers.PrimaryKeyRelatedField(read_only=True)
     organizer_name = serializers.SerializerMethodField(read_only=True)
     category_name  = serializers.SerializerMethodField(read_only=True)
     image_url      = serializers.SerializerMethodField(read_only=True)
+    tickets_issued = serializers.SerializerMethodField(read_only=True)
+    tickets_checked_in = serializers.SerializerMethodField(read_only=True)
+    tickets_pending = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Event
         fields = [
             "id",
             "organizer",
+            "is_approved",
             "title",
             "description",
             "start_time",   
@@ -34,10 +39,13 @@ class EventSerializer(serializers.ModelSerializer):
             "end_time",   
             "category",     
             "organizer_name",
+            "tickets_issued",
+            "tickets_checked_in",
+            "tickets_pending",
             "category_name",
             "image_url",
         ]
-    read_only_fields = ["organizer_name", "category_name", "image_url", "organizer"]
+        read_only_fields = ["organizer", "organizer_name", "category_name", "image_url", "tickets_issued", "tickets_checked_in", "tickets_pending"]
 
     # ---- helpers ----
     def get_organizer_name(self, obj):
@@ -65,6 +73,26 @@ class EventSerializer(serializers.ModelSerializer):
             "https://images.unsplash.com/photo-1527525443983-6e60c75fff46?q=80&w=800&auto=format&fit=crop"
         )
 
+    def get_tickets_issued(self, obj):
+        try:
+            return obj.event_management_tickets.count()
+        except Exception:
+            return 0
+
+    def get_tickets_checked_in(self, obj):
+        try:
+            return obj.event_management_tickets.filter(is_used=True).count()
+        except Exception:
+            return 0
+
+    def get_tickets_pending(self, obj):
+        try:
+            issued = obj.event_management_tickets.count()
+            checked = obj.event_management_tickets.filter(is_used=True).count()
+            return max(issued - checked, 0)
+        except Exception:
+            return 0
+
     #def get_image_url(self, obj):
         #img = getattr(obj, "image", None)
         #if not img:
@@ -83,8 +111,7 @@ class TicketSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ticket
-        # expose the new status and checked_in_at fields; keep is_used for compatibility
-        fields = ["id", "event", "owner", "qr", "is_used", "status", "checked_in_at", "qr_png_url"]
+        fields = ["id", "event", "owner", "qr", "is_used", "qr_png_url"]
         extra_kwargs = {"owner": {"write_only": True}}
 
     def get_qr_png_url(self, obj):

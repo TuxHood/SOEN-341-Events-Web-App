@@ -2,6 +2,7 @@
 
 const BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 const api = (p) => `${BASE}${p.startsWith("/") ? "" : "/"}${p}`;
+import apiClient from './apiClient';
 
 // ✅ Get all events (Event Discovery page uses this)
 // Accepts an options object: { baseUrl, token, date }
@@ -31,4 +32,25 @@ export async function getEvent(id) {
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+// Update an event (PATCH) using the centralized axios client so Authorization
+// header and CSRF handling are consistent. Returns the updated event object.
+export async function updateEvent(id, payload) {
+  // apiClient is an axios instance with interceptors that attach Authorization
+  // and attempt refresh on 401. It also handles CSRF token setup for unsafe methods.
+  const res = await apiClient.patch(`/events/${id}/`, payload);
+  return res.data;
+}
+
+// Create a new event using axios client
+export async function createEvent(payload) {
+  const res = await apiClient.post(`/events/`, payload);
+  return res.data;
+}
+
+// Delete event
+export async function deleteEvent(id) {
+  const res = await apiClient.delete(`/events/${id}/`);
+  return res.data;
 }

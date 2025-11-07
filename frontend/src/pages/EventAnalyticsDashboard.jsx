@@ -17,11 +17,20 @@ const EventAnalyticsDashboard = () => {
       setLoading(true);
       setError(null);
       const response = await analyticsAPI.getEventAnalytics(eventId);
-      
       if (!response.ok) {
-        throw new Error(response.data.error || 'Failed to fetch analytics');
+        // Show a clear access-denied message for auth/permission failures
+        if (response.status === 401 || response.status === 403) {
+          const detail = response.data && (response.data.detail || response.data.error);
+          setError(detail || 'Access Denied — must have organizer privileges');
+          return;
+        }
+
+        // other errors: surface server message if present
+        const msg = (response.data && (response.data.error || response.data.detail)) || 'Failed to fetch analytics';
+        setError(msg);
+        return;
       }
-      
+
       setAnalytics(response.data);
     } catch (err) {
       setError(err.message);

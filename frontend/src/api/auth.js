@@ -77,6 +77,36 @@ export async function getProfile() {
   return res.json();
 }
 
+export async function refreshAccess() {
+  // Try to refresh the access token using the stored refresh token.
+  const refresh = localStorage.getItem('refresh') || localStorage.getItem('refresh_token');
+  if (!refresh) throw new Error('No refresh token available');
+
+  const res = await fetch(`${API_ROOT}/token/refresh/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    // If refresh fails, clear tokens to force a re-login upstream
+    logout();
+    throw new Error(text || 'Token refresh failed');
+  }
+
+  const data = JSON.parse(text);
+  if (!data.access) {
+    logout();
+    throw new Error('Refresh response did not contain access token');
+  }
+
+  // Persist new access token (support both key names used by the app)
+  localStorage.setItem('access', data.access);
+  localStorage.setItem('access_token', data.access);
+  return data.access;
+}
+
 export function logout() {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");

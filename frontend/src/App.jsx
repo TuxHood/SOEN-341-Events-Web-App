@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import { useAuth } from "./components/AuthProvider";
 import "./App.css";
 
 import Home from "./pages/Home";
@@ -11,22 +12,24 @@ import SignUpPage from "./pages/SignUpPage";
 import EventDiscovery from "./pages/EventDiscovery";
 import EventAnalyticsDashboard from "./pages/EventAnalyticsDashboard";
 import OrganizerApproval from "./pages/OrganizerApproval";
+import AdminApprovals from "./pages/AdminApprovals";
 import AttendeeList from "./pages/AttendeeList";
-import OrganizerScan from "./pages/OrganizerScan";
 
 import AuthProvider from "./components/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
-import OrganizerRoute from "./components/OrganizerRoute";
-import { useAuth } from "./components/AuthProvider";
 import TicketConfirmation from "./pages/TicketConfirmation";
 import BuyTicket from "./pages/BuyTicket";
 import MyTickets from "./pages/MyTickets";
 import TicketQR from "./pages/TicketQR";
+import TicketScanner from "./pages/TicketScanner";
+import EventScanner from "./pages/EventScanner";
+import EventEdit from "./pages/EventEdit";
 
 function AppShell() {
   const { pathname } = useLocation();
-  const auth = useAuth();
-  const userRole = auth?.user?.role;
+  const { user, ready } = useAuth();
+
+  const isAdmin = Boolean(user && (user.role === 'admin' || user.is_staff));
 
   // Hide nav on auth pages
   const hideNav = ["/auth/login", "/auth/sign-up"];
@@ -39,21 +42,19 @@ function AppShell() {
           <Link to="/" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
             Home
           </Link>
-          {userRole === 'organizer' && (
-            <Link to="/organizer" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-              Organizer
-            </Link>
-          )}
-          <Link to="/admin/organizer-approval" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-            Organizer Approval
+          <Link to="/organizer" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
+            Organizer
           </Link>
-          <Link to="/events/1/analytics" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-            Analytics
-          </Link>
-          {userRole === 'organizer' && (
-            <Link to="/organizer/scan" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-              Scan Tickets
-            </Link>
+          {/* Show admin-only links only to admins/staff */}
+          {isAdmin && (
+            <>
+              <Link to="/admin/organizer-approval" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
+                Organizer Approval
+              </Link>
+              <Link to="/events/1/analytics" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
+                📊 Analytics
+              </Link>
+            </>
           )}
           <Link to="/auth/login" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
             Login
@@ -65,8 +66,9 @@ function AppShell() {
         {/* Public */}
         <Route path="/" element={<Home />} />
         <Route path="/events/:eventId" element={<EventDetail />} />
+  <Route path="/events/:eventId/edit" element={<EventEdit />} />
         <Route path="/events/:eventId/analytics" element={<EventAnalyticsDashboard />} />
-  <Route path="/organizer" element={<OrganizerRoute><OrganizerDashboard /></OrganizerRoute>} />
+        <Route path="/organizer" element={<OrganizerDashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/sign-up" element={<SignUpPage />} />
@@ -81,12 +83,14 @@ function AppShell() {
         {/* Ticket flow */}
         <Route path="/events/:eventId/ticket" element={<TicketConfirmation />} />
         <Route path="/events/:eventId/buy" element={<BuyTicket />} />
+  <Route path="/tickets/scan" element={<TicketScanner />} />
+  <Route path="/events/:eventId/scan" element={<EventScanner />} />
 
         {/* Organizer/Admin pages */}
         <Route path="/events/:eventId/attendees" element={<AttendeeList />} />
         <Route path="/events" element={<EventDiscovery />} />
         <Route path="/admin/organizer-approval" element={<OrganizerApproval />} />
-  <Route path="/organizer/scan" element={<OrganizerRoute><OrganizerScan /></OrganizerRoute>} />
+        <Route path="/admin/approvals" element={<AdminApprovals />} />
       </Routes>
     </>
   );

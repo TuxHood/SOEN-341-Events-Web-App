@@ -82,6 +82,7 @@ useEffect(() => {
           timeLabel: fmtTime(start),
           startMs: start ? start.getTime() : null,
           endMs: end ? end.getTime() : null,
+          is_approved: e.is_approved,
         };
       });
       setEvents(shaped);
@@ -238,9 +239,13 @@ const formattedToday = displayDate.toLocaleDateString("en-CA", {
 
 
        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-         <button className="claim-btn" onClick={handleBuy}>
-           Buy Ticket
-         </button>
+         {event.is_approved === false ? (
+           <div style={{ color: '#92400e', background: '#fff7ed', padding: 8, borderRadius: 6 }}>This event is pending approval and is not open for registration.</div>
+         ) : (
+           <button className="claim-btn" onClick={handleBuy}>
+             Buy Ticket
+           </button>
+         )}
          <button className="close-btn" onClick={onClose}>Close</button>
        </div>
      </div>

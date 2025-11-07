@@ -7,7 +7,9 @@ export default function OrganizerRoute({ children }) {
   const location = useLocation();
   if (!ctx) return children ?? <Outlet />;
 
-  const { user } = ctx;
+  const { user, ready } = ctx;
+  // Wait for auth initialization to avoid spurious redirects on page reload
+  if (ready === false) return null;
   if (!user) return <Navigate to="/auth/login" replace state={{ from: location }} />;
 
   // Only allow users with explicit role 'organizer'

@@ -13,9 +13,9 @@ import datetime
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.exceptions import PermissionDenied
 
 from .models import Event, Category, Venue, Ticket
 from .serializers import (
@@ -30,6 +30,19 @@ def _has_field(model, name: str) -> bool:
     except FieldDoesNotExist:
         return False
 
+
+def _event_owner_id(event):
+    """Return the organizer user id for an event if present, else None."""
+    # event may have a relation named 'organizer' pointing to a User, or not.
+    if hasattr(event, 'organizer'):
+        org = getattr(event, 'organizer')
+        if org is None:
+            return None
+        return getattr(org, 'id', None)
+    # Some forks might store a raw organizer_id attribute (unlikely on Django model),
+    # so defensively attempt to read it.
+    return getattr(event, 'organizer_id', None)
+
 def _first_existing_field(model, *candidates):
     for c in candidates:
         if _has_field(model, c):
@@ -40,9 +53,8 @@ def _first_existing_field(model, *candidates):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    # Allow JWT or session authentication; read-only access is public but create/update requires auth
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    # Use JWT for API auth to avoid CSRF enforcement by SessionAuthentication on unsafe methods.
+    authentication_classes = [JWTAuthentication]
 
     # ensure EventSerializer gets request in context (for absolute image_url)
     def get_serializer(self, *args, **kwargs):
@@ -55,13 +67,6 @@ class EventViewSet(viewsets.ModelViewSet):
         end_field   = _first_existing_field(Event, "end_at", "end_time")
 
         qs = Event.objects.all()
-
-        # If caller requests organizer's own events, support ?organizer=me
-        org_filter = self.request.query_params.get('organizer') or None
-        if org_filter == 'me':
-            if not self.request.user or not self.request.user.is_authenticated:
-                return Event.objects.none()
-            qs = qs.filter(organizer=self.request.user)
 
         # Optional: filter by a specific date passed as ?date=YYYY-MM-DD
         # If a date is provided, return events that intersect that date (inclusive).
@@ -109,9 +114,100 @@ class EventViewSet(viewsets.ModelViewSet):
             if end_field:
                 qs = qs.filter(**{f"{end_field}__gte": now()})
 
+        # Support organizer filtering for organizer dashboard or admin
+        # e.g. ?organizer=me will return only events owned by the requesting user
+        org_param = self.request.query_params.get('organizer')
+        if org_param:
+            # only apply organizer filtering if the Event model actually has an 'organizer' FK
+            if _has_field(Event, 'organizer'):
+                if org_param == 'me' and self.request.user.is_authenticated:
+                    qs = qs.filter(organizer__id=self.request.user.id)
+                else:
+                    # try to treat organizer as id
+                    try:
+                        qs = qs.filter(organizer__id=int(org_param))
+                    except Exception:
+                        # ignore bad values and keep unfiltered qs
+                        pass
+            else:
+                # Event model has no organizer field in this fork - return empty set for organizer-specific queries
+                # (frontend expects an empty list rather than an error)
+                if org_param == 'me':
+                    qs = qs.none()
+
+        # Support filtering by approval state for admin approvals page
+        is_approved_param = self.request.query_params.get('is_approved')
+        if is_approved_param is not None:
+            if is_approved_param.lower() in ('false', '0'):
+                qs = qs.filter(is_approved=False)
+            elif is_approved_param.lower() in ('true', '1'):
+                qs = qs.filter(is_approved=True)
+
+        # If approval filtering not requested, hide unapproved events from public users
+        if is_approved_param is None:
+            # If the request is for the organizer's own events, include pending ones
+            if not (org_param == 'me' and self.request.user.is_authenticated):
+                # Admins/staff can see all events
+                if not (getattr(self.request.user, 'is_staff', False) or getattr(self.request.user, 'role', '') == 'admin'):
+                    qs = qs.filter(is_approved=True)
+
         # order by start if it exists, else by pk
         order_field = start_field or "id"
         return qs.order_by(order_field)
+
+    def perform_create(self, serializer):
+        """Auto-assign the requesting user as the organizer when creating an event."""
+        user = self.request.user
+        if user and user.is_authenticated:
+            # Only pass organizer to serializer if Event model actually has the field
+            if _has_field(Event, 'organizer'):
+                # Events created by organizers require admin approval by default
+                if getattr(user, 'role', '') == 'organizer' and not getattr(user, 'is_staff', False) and getattr(user, 'role', '') != 'admin':
+                    # set is_approved False when organizer creates
+                    if _has_field(Event, 'is_approved'):
+                        serializer.save(organizer=user, is_approved=False)
+                    else:
+                        serializer.save(organizer=user)
+                else:
+                    serializer.save(organizer=user)
+            else:
+                # Event has no organizer field in this fork — just save without organizer
+                serializer.save()
+        else:
+            serializer.save()
+
+    def retrieve(self, request, *args, **kwargs):
+        """Allow the event owner or admin to retrieve a single unapproved event even when
+        the default queryset hides unapproved events from public listing.
+        This keeps discovery lists clean but lets owners and admins access details.
+        """
+        pk = kwargs.get('pk')
+        try:
+            # First try the normal path (object present in queryset)
+            return super().retrieve(request, *args, **kwargs)
+        except Exception:
+            # If not found in the queryset, try to fetch directly and validate ownership/admin
+            try:
+                obj = Event.objects.get(pk=pk)
+            except Event.DoesNotExist:
+                return Response({'detail': 'No Event matches the given query.'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Check permissions: owner, admin, or staff may view
+            user = request.user
+            owner_id = _event_owner_id(obj)
+            if user and getattr(user, 'is_authenticated', False) and (owner_id == user.id or getattr(user, 'role', '') == 'admin' or getattr(user, 'is_staff', False)):
+                serializer = self.get_serializer(obj)
+                return Response(serializer.data)
+            return Response({'detail': 'No Event matches the given query.'}, status=status.HTTP_404_NOT_FOUND)
+
+    def _ensure_owner_or_admin(self, event):
+        """Raise PermissionDenied unless the request user is the event organizer or an admin."""
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            raise PermissionDenied(detail='Authentication required.')
+        owner_id = _event_owner_id(event)
+        if owner_id != user.id and getattr(user, 'role', '') != 'admin' and not getattr(user, 'is_staff', False):
+            raise PermissionDenied(detail='You do not have permission to perform this action on this event.')
 
     @action(detail=True, methods=['get'], url_path='analytics')
     def analytics(self, request, pk=None):
@@ -119,13 +215,14 @@ class EventViewSet(viewsets.ModelViewSet):
         Event analytics (kept from main)
         """
         event = self.get_object()
+        # Only organizer or admin may view analytics
+        try:
+            self._ensure_owner_or_admin(event)
+        except PermissionDenied:
+            return Response({'detail': 'You do not have permission to view analytics for this event.'}, status=status.HTTP_403_FORBIDDEN)
         # ticket related_name in this project is `event_management_tickets`
         total_tickets = event.event_management_tickets.count()
-        # prefer explicit status where available
-        checked_in = event.event_management_tickets.filter(status=Ticket.CHECKED_IN).count()
-        pending = event.event_management_tickets.filter(status=Ticket.PENDING).count()
-        no_show = event.event_management_tickets.filter(status=Ticket.NO_SHOW).count()
-        cancelled = event.event_management_tickets.filter(status=Ticket.CANCELLED).count()
+        checked_in = event.event_management_tickets.filter(is_used=True).count()
 
         # Event model may not have a Venue relation in this fork; be defensive.
         venue_obj = getattr(event, 'venue', None)
@@ -145,34 +242,12 @@ class EventViewSet(viewsets.ModelViewSet):
             'event_title': event.title,
             'tickets_issued': total_tickets,
             'tickets_checked_in': checked_in,
-            'tickets_pending': pending,
-            'tickets_no_show': no_show,
-            'tickets_cancelled': cancelled,
+            'tickets_pending': total_tickets - checked_in,
             'venue_capacity': venue_capacity,
             'remaining_capacity': remaining_capacity,
             'check_in_percentage': round(check_in_percentage, 2),
             'capacity_utilization': round(capacity_utilization, 2),
         })
-
-    def create(self, request, *args, **kwargs):
-        """
-        Assign the requesting user as the organizer when creating an Event.
-        """
-        if not request.user or not request.user.is_authenticated:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
-        # Only organizers or admins may create events
-        user_role = getattr(request.user, 'role', '')
-        if user_role != 'organizer' and user_role != 'admin':
-            return Response({'detail': 'Only organizers may create events.'}, status=status.HTTP_403_FORBIDDEN)
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        # Save with organizer set to requesting user
-        event = serializer.save(organizer=request.user)
-        headers = self.get_success_headers(serializer.data)
-        # reserialize for response (include organizer id)
-        out_ser = self.get_serializer(event)
-        return Response(out_ser.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @action(detail=True, methods=['get'], url_path='attendees')
     def attendees(self, request, pk=None):
@@ -181,21 +256,22 @@ class EventViewSet(viewsets.ModelViewSet):
         """
         event = self.get_object()
 
-        if request.user.is_authenticated and getattr(event, "organizer_id", None) != request.user.id:
-            if getattr(request.user, "role", "") != 'admin':
-                return Response(
-                    {'detail': 'You do not have permission to view attendees for this event.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        if request.user.is_authenticated:
+            owner_id = _event_owner_id(event)
+            if owner_id is not None and owner_id != request.user.id:
+                if getattr(request.user, "role", "") != 'admin':
+                    return Response(
+                        {'detail': 'You do not have permission to view attendees for this event.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
 
         tickets = event.event_management_tickets.select_related('owner').all()
         attendee_list = [{
             'ticket_id': str(t.id),
             'name': getattr(t.owner, "name", ""),
             'email': getattr(t.owner, "email", ""),
-            'status': getattr(t, 'status', 'PENDING'),
-            'is_checked_in': getattr(t, 'status', None) == Ticket.CHECKED_IN,
-            'check_in_time': getattr(t, 'checked_in_at', None),
+            'is_checked_in': t.is_used,
+            'check_in_time': t.created_at if t.is_used else None,
             'qr_code': getattr(t, "qr_code", None),
         } for t in tickets]
 
@@ -207,6 +283,31 @@ class EventViewSet(viewsets.ModelViewSet):
             'attendees': attendee_list,
         })
 
+    # Protect update/delete so non-owners cannot edit events
+    def update(self, request, *args, **kwargs):
+        event = self.get_object()
+        try:
+            self._ensure_owner_or_admin(event)
+        except PermissionDenied:
+            return Response({'detail': 'You do not have permission to edit this event.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        event = self.get_object()
+        try:
+            self._ensure_owner_or_admin(event)
+        except PermissionDenied:
+            return Response({'detail': 'You do not have permission to edit this event.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        event = self.get_object()
+        try:
+            self._ensure_owner_or_admin(event)
+        except PermissionDenied:
+            return Response({'detail': 'You do not have permission to delete this event.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=['get'], url_path='attendees/export')
     def export_attendees(self, request, pk=None):
         """
@@ -214,12 +315,14 @@ class EventViewSet(viewsets.ModelViewSet):
         """
         event = self.get_object()
 
-        if request.user.is_authenticated and getattr(event, "organizer_id", None) != request.user.id:
-            if getattr(request.user, "role", "") != 'admin':
-                return Response(
-                    {'detail': 'You do not have permission to export attendees for this event.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        if request.user.is_authenticated:
+            owner_id = _event_owner_id(event)
+            if owner_id is not None and owner_id != request.user.id:
+                if getattr(request.user, "role", "") != 'admin':
+                    return Response(
+                        {'detail': 'You do not have permission to export attendees for this event.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
 
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="attendees_{event.id}_{event.title.replace(" ", "_")}.csv"'
@@ -288,6 +391,9 @@ def buy_ticket(request, event_id: int):
     POST /api/events/<event_id>/buy/ — one ticket per user per event.
     """
     event = get_object_or_404(Event, pk=event_id)
+    # Do not allow registration for events pending approval
+    if hasattr(event, 'is_approved') and not getattr(event, 'is_approved'):
+        return Response({"detail": "Event is not open for registration."}, status=403)
     user = request.user
 
     if Ticket.objects.filter(event=event, owner=user).exists():  # adjust if model uses 'user'
@@ -368,36 +474,60 @@ def cancel_ticket(request, event_id: int):
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def checkin_ticket(request, ticket_id):
+def checkin_ticket(request, ticket_id: str):
+    """Endpoint to check-in a ticket by its id (used by QR scanner tools).
+
+    URL shape in some deployments used `/api/tickets/<ticket_id>/checkin/`.
+    This implementation is defensive: look up the ticket, verify permissions,
+    mark it used and return a small JSON payload.
     """
-    POST /api/tickets/<uuid:ticket_id>/checkin/ — mark a ticket as checked-in.
-    Only the event organizer or an admin may perform this action.
-    Request body may be empty; ticket id is in the URL.
-    """
-    ticket = get_object_or_404(Ticket, pk=ticket_id)
-    event = getattr(ticket, "event", None)
+    try:
+        t = Ticket.objects.select_related('event', 'owner').get(pk=ticket_id)
+    except Ticket.DoesNotExist:
+        return Response({"detail": "Ticket not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    # permission: organizer of the event or admin
-    if request.user.is_authenticated and getattr(event, "organizer_id", None) != request.user.id:
-        if getattr(request.user, "role", "") != 'admin':
-            return Response({"detail": "You do not have permission to check in this ticket."}, status=status.HTTP_403_FORBIDDEN)
+    # Only event organizer or admin may perform check-ins (or the ticket owner can self-checkin)
+    user = request.user
+    if not (getattr(user, 'is_authenticated', False)):
+        return Response({"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # Do not check-in cancelled or no-show tickets
-    if getattr(ticket, "status", None) == Ticket.CANCELLED:
-        return Response({"detail": "Ticket is cancelled."}, status=status.HTTP_400_BAD_REQUEST)
-    if getattr(ticket, "status", None) == Ticket.NO_SHOW:
-        return Response({"detail": "Ticket already marked as no-show."}, status=status.HTTP_400_BAD_REQUEST)
+    event = getattr(t, 'event', None)
+    owner_id = _event_owner_id(event)
+    allowed = (event and (
+        (owner_id is not None and owner_id == user.id)
+        or getattr(user, 'role', '') == 'admin'
+        or t.owner_id == user.id
+        or getattr(user, 'is_staff', False)
+    ))
+    if not allowed:
+        # In development, return helpful debug info to diagnose permission mismatches
+        try:
+            from django.conf import settings as _settings
+            if getattr(_settings, 'DEBUG', False):
+                return Response({
+                    "detail": "You do not have permission to check in this ticket.",
+                    "debug": {
+                        "request_user_id": getattr(user, 'id', None),
+                        "request_user_role": getattr(user, 'role', None),
+                        "event_id": getattr(event, 'id', None),
+                        "event_owner_id": owner_id,
+                        "ticket_owner_id": getattr(t, 'owner_id', None),
+                    }
+                }, status=status.HTTP_403_FORBIDDEN)
+        except Exception:
+            pass
+        return Response({"detail": "You do not have permission to check in this ticket."}, status=status.HTTP_403_FORBIDDEN)
 
-    # Already checked in -> return current state
-    if getattr(ticket, "status", None) == Ticket.CHECKED_IN:
-        ser = TicketSerializer(ticket, context={"request": request})
-        return Response({"detail": "Already checked in.", "ticket": ser.data}, status=status.HTTP_200_OK)
+    if t.is_used:
+        return Response({"detail": "Ticket already checked in."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # mark checked in
-    ticket.status = Ticket.CHECKED_IN
-    ticket.checked_in_at = now()
-    ticket.is_used = True  # keep backward compatibility
-    ticket.save()
-
-    ser = TicketSerializer(ticket, context={"request": request})
-    return Response({"detail": "Checked in.", "ticket": ser.data}, status=status.HTTP_200_OK)
+    t.is_used = True
+    t.save()
+    return Response({
+        "ticket_id": str(t.id),
+        "checked_in": True,
+        "event": event.id if event else None,
+        "event_title": getattr(event, 'title', None),
+        "attendee_name": getattr(getattr(t, 'owner', None), 'name', None),
+        "attendee_email": getattr(getattr(t, 'owner', None), 'email', None),
+    }, status=200)

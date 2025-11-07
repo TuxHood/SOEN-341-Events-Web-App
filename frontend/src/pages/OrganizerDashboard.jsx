@@ -1,143 +1,65 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-
-function CreateEventInline({ onCreated }) {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [organization, setOrganization] = useState('');
-  const [category, setCategory] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [priceCents, setPriceCents] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    try {
-      const payload = {
-        title,
-        organization,
-        category,
-        start_time: startTime ? new Date(startTime).toISOString() : null,
-        end_time: endTime ? new Date(endTime).toISOString() : null,
-        image_url: imageUrl,
-        price_cents: Number(priceCents) || 0,
-      };
-
-      // include Authorization header when available
-      const { authHeaders } = await import('../api/auth.js');
-      const headers = { 'Content-Type': 'application/json', ...(authHeaders ? authHeaders() : {}) };
-      const res = await fetch('/api/events/', {
-        method: 'POST',
-        credentials: 'include',
-        headers,
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || String(res.status));
-      }
-
-      setOpen(false);
-      setTitle(''); setOrganization(''); setCategory(''); setStartTime(''); setEndTime(''); setImageUrl(''); setPriceCents(0);
-      if (onCreated) onCreated();
-    } catch (err) {
-      setError(err.message || 'Failed to create event');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div>
-      <button onClick={() => setOpen(!open)} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>
-        {open ? 'Close' : 'Create Event'}
-      </button>
-      {open && (
-        <form onSubmit={submit} style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-          <input required placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #e5e7eb' }} />
-          <input placeholder="Organization" value={organization} onChange={e => setOrganization(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #e5e7eb' }} />
-          <input placeholder="Category" value={category} onChange={e => setCategory(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #e5e7eb' }} />
-          <label style={{ fontSize: 12, color: '#6b7280' }}>Start</label>
-          <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #e5e7eb' }} />
-          <label style={{ fontSize: 12, color: '#6b7280' }}>End</label>
-          <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #e5e7eb' }} />
-          <input placeholder="Image URL" value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #e5e7eb' }} />
-          <input type="number" placeholder="Price (cents)" value={priceCents} onChange={e => setPriceCents(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #e5e7eb' }} />
-          {error && <div style={{ color: '#DC2626' }}>{error}</div>}
-          <button type="submit" disabled={submitting} style={{ padding: '10px 14px', borderRadius: 8, background: '#111827', color: '#fff', border: 'none' }}>{submitting ? 'Creating...' : 'Create Event'}</button>
-        </form>
-      )}
-    </div>
-  );
-}
+import { Link } from 'react-router-dom';
+import api from '../api/apiClient';
+import { useAuth } from '../components/AuthProvider';
 
 export default function OrganizerDashboard() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [error, setError] = useState(null);
+  const { user, ready } = useAuth();
+  const [creating, setCreating] = useState(false);
+  const [newEvent, setNewEvent] = useState({ title: '', description: '', start_time: '', end_time: '', organization: '', category: '' });
 
   useEffect(() => {
-    let mounted = true;
-
-    const load = async () => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        // include Authorization header when available so JWT-auth'd SPA requests are recognized
-        let headers = {};
-        try {
-          const { authHeaders } = await import('../api/auth.js');
-          headers = authHeaders ? authHeaders() : {};
-        } catch (err) {
-          // ignore - we'll still try with credentials only
-          headers = {};
+        // Request organizer-only events. Backend supports ?organizer=me
+        const res = await api.get('/events/', { params: { organizer: 'me' } });
+        if (!cancelled) {
+          setEvents(res.data || []);
         }
-
-        // fetch only organizer-owned events
-        const evRes = await fetch(`/api/events/?organizer=me`, { credentials: 'include', headers });
-        if (!evRes.ok) throw new Error(String(evRes.status));
-        const evs = await evRes.json();
-
-        // for each event, fetch analytics to get ticket counts
-        const withCounts = await Promise.all(evs.map(async (e) => {
-          try {
-            const res = await fetch(`/api/events/${e.id}/analytics/`, { credentials: 'include', headers });
-            if (!res.ok) return { ...e, tickets: 0, checked_in: 0 };
-            const data = await res.json();
-            return {
-              ...e,
-              tickets: data.tickets_issued ?? 0,
-              checked_in: data.tickets_checked_in ?? 0,
-              analytics: data,
-            };
-          } catch (err) {
-            return { ...e, tickets: 0, checked_in: 0 };
-          }
-        }));
-
-        if (mounted) {
-          setEvents(withCounts);
-        }
-      } catch (err) {
-        // If fetching events fails due to auth, redirect to login
-        if (err.message && (err.message.includes('401') || err.message.includes('403'))) {
-          navigate('/auth/login');
-        }
-        console.error('Failed to load events', err);
+      } catch (e) {
+        if (!cancelled) setError(e?.response?.data?.detail || e.message || 'Failed to load events');
       } finally {
-        if (mounted) setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    };
+    }
 
-    load();
+    // Wait for AuthProvider to rehydrate so organizer=me is meaningful
+    if (ready) load();
+    return () => { cancelled = true; };
+  }, [ready]);
 
-    return () => { mounted = false; };
-  }, [navigate]);
+  async function handleCreate(ev) {
+    ev.preventDefault();
+    setCreating(true);
+    setError(null);
+    try {
+      // minimal payload
+      const payload = {
+        title: newEvent.title,
+        description: newEvent.description,
+        start_time: newEvent.start_time,
+        end_time: newEvent.end_time,
+        organization: newEvent.organization || 'Organizer',
+        category: newEvent.category || 'General'
+      };
+      await api.post('/events/', payload);
+      // reload events
+      const res = await api.get('/events/', { params: { organizer: 'me' } });
+      setEvents(res.data || []);
+      // reset form
+      setNewEvent({ title: '', description: '', start_time: '', end_time: '', organization: '', category: '' });
+    } catch (e) {
+      setError(e?.response?.data?.detail || e.message || 'Failed to create event');
+    } finally {
+      setCreating(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -149,6 +71,17 @@ export default function OrganizerDashboard() {
         background: '#f9fafb'
       }}>
         <h2 style={{ color: '#6b7280' }}>Loading...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div>
+          <h3 style={{ color: '#ef4444' }}>Error</h3>
+          <div style={{ color: '#6b7280' }}>{error}</div>
+        </div>
       </div>
     );
   }
@@ -173,94 +106,98 @@ export default function OrganizerDashboard() {
           <p style={{ color: '#6b7280', fontSize: '16px' }}>
             Manage your events and track attendance
           </p>
-          {/* Create event quick form toggle */}
-          <div style={{ marginTop: '16px' }}>
-            <CreateEventInline onCreated={() => {
-              // reload events after create
-              setLoading(true);
-              setTimeout(() => setLoading(false), 200); // slight UX flicker handled by reload in effect
-              window.location.reload();
-            }} />
+          <div style={{ marginTop: 12 }}>
+            <Link to="/tickets/scan" style={{ textDecoration: 'none' }}>
+              <button className="btn" style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff' }}>Open Ticket Scanner</button>
+            </Link>
           </div>
         </div>
       </div>
 
       {/* Events */}
+      {/* Create event form */}
+      <div style={{ maxWidth: '1200px', margin: '20px auto', padding: '24px' }}>
+        <div style={{ background: '#fff', padding: '20px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+          <h2 style={{ margin: 0, marginBottom: '12px', fontSize: '1.25rem' }}>Create a new event</h2>
+          <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <input required placeholder="Title" value={newEvent.title} onChange={e => setNewEvent(s => ({ ...s, title: e.target.value }))} className="p-2 border rounded" />
+            <input required placeholder="Organization" value={newEvent.organization} onChange={e => setNewEvent(s => ({ ...s, organization: e.target.value }))} className="p-2 border rounded" />
+            <input required type="datetime-local" placeholder="Starts" value={newEvent.start_time} onChange={e => setNewEvent(s => ({ ...s, start_time: e.target.value }))} className="p-2 border rounded" />
+            <input required type="datetime-local" placeholder="Ends" value={newEvent.end_time} onChange={e => setNewEvent(s => ({ ...s, end_time: e.target.value }))} className="p-2 border rounded" />
+            <input placeholder="Category" value={newEvent.category} onChange={e => setNewEvent(s => ({ ...s, category: e.target.value }))} className="p-2 border rounded" />
+            <input placeholder="(Optional) Short description" value={newEvent.description} onChange={e => setNewEvent(s => ({ ...s, description: e.target.value }))} className="p-2 border rounded" />
+              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+              <button type="submit" disabled={creating} className="rounded px-3 py-1 text-white" style={{ background: '#000' }}>{creating ? 'Creating…' : 'Create Event'}</button>
+            </div>
+          </form>
+        </div>
+      </div>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ display: 'grid', gap: '24px' }}>
           {events.map(event => {
-            const rate = event.tickets > 0 ? Math.round((event.checked_in / event.tickets) * 100) : 0;
-            
+            // Ownership guard: show edit/analytics/attendees only if current user is organizer or admin
+            const isOwner = (user && (user.role === 'admin' || user.id === event.organizer));
+            const displayDate = event.start_time ? new Date(event.start_time).toLocaleString() : '';
+
             return (
-              <div
-                key={event.id}
-                style={{
-                  background: '#fff',
-                  padding: '32px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-                }}
-              >
+              <div key={event.id} style={{ background: '#fff', padding: '32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px', flexWrap: 'wrap' }}>
                   <div style={{ flex: '1', minWidth: '300px' }}>
-                    <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px', color: '#111827' }}>
-                      {event.title}
-                    </h3>
-                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '20px' }}>
-                      {event.date}
-                    </p>
-                    
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px', color: '#111827' }}>{event.title}</h3>
+                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '6px' }}>{displayDate}</p>
+                    {/* approval status */}
+                    {typeof event.is_approved !== 'undefined' && (
+                      <div style={{ marginBottom: '14px' }}>
+                        {event.is_approved ? (
+                          <span style={{ color: '#065f46', background: '#ecfdf5', padding: '4px 8px', borderRadius: 6, fontSize: '13px', fontWeight: 600 }}>Approved</span>
+                        ) : (
+                          <span style={{ color: '#92400e', background: '#fff7ed', padding: '4px 8px', borderRadius: 6, fontSize: '13px', fontWeight: 600 }}>Pending approval</span>
+                        )}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
                       <div>
-                        <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>
-                          Tickets Issued
-                        </div>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>
-                          {event.tickets}
-                        </div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Tickets Issued</div>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>{event.tickets_issued ?? '—'}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>
-                          Checked In
-                        </div>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>
-                          {event.checked_in}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>
-                          Rate
-                        </div>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>
-                          {rate}%
-                        </div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Checked In</div>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>{event.tickets_checked_in ?? '—'}</div>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div style={{ display: 'flex', gap: '12px', flexDirection: 'column', minWidth: '200px' }}>
-                    <Link to={`/events/${event.id}/analytics`} style={{ textDecoration: 'none' }}>
-                      <button className="btn btn-outline" style={{ width: '100%', padding: '12px 24px', fontSize: '15px' }}>
-                        View Analytics
-                      </button>
-                    </Link>
-                    
-                    <Link to={`/events/${event.id}/attendees`} style={{ textDecoration: 'none' }}>
-                      <button
-                        className="btn btn-primary"
-                        style={{
-                          width: '100%',
-                          padding: '12px 24px',
-                          fontSize: '15px',
-                          background: '#000',
-                          color: '#fff',
-                          border: 'none'
-                        }}
-                      >
-                        View Attendee List
-                      </button>
-                    </Link>
+                    {isOwner ? (
+                      <Link to={`/events/${event.id}/analytics`} style={{ textDecoration: 'none' }}>
+                        <button className="btn btn-outline" style={{ width: '100%', padding: '12px 24px', fontSize: '15px' }}>View Analytics</button>
+                      </Link>
+                    ) : (
+                      <button disabled className="btn btn-outline" style={{ width: '100%', padding: '12px 24px', fontSize: '15px', opacity: 0.6 }}>Analytics (owner only)</button>
+                    )}
+
+                    {isOwner ? (
+                      <Link to={`/events/${event.id}/edit`} style={{ textDecoration: 'none' }}>
+                        <button className="btn btn-outline" style={{ width: '100%', padding: '12px 24px', fontSize: '15px' }}>Edit Event</button>
+                      </Link>
+                    ) : (
+                      <button disabled className="btn btn-outline" style={{ width: '100%', padding: '12px 24px', fontSize: '15px', opacity: 0.6 }}>Edit (owner only)</button>
+                    )}
+
+                    {isOwner ? (
+                      <Link to={`/events/${event.id}/attendees`} style={{ textDecoration: 'none' }}>
+                        <button className="btn btn-primary" style={{ width: '100%', padding: '12px 24px', fontSize: '15px', background: '#000', color: '#fff', border: 'none' }}>View Attendee List</button>
+                      </Link>
+                    ) : (
+                      <button disabled className="btn btn-primary" style={{ width: '100%', padding: '12px 24px', fontSize: '15px', opacity: 0.6 }}>Attendees (owner only)</button>
+                    )}
+                    {isOwner ? (
+                      <Link to={`/events/${event.id}/scan`} style={{ textDecoration: 'none' }}>
+                        <button className="btn btn-outline" style={{ width: '100%', padding: '12px 24px', fontSize: '15px' }}>Open Scanner</button>
+                      </Link>
+                    ) : (
+                      <button disabled className="btn btn-outline" style={{ width: '100%', padding: '12px 24px', fontSize: '15px', opacity: 0.6 }}>Scanner (owner only)</button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -269,8 +206,8 @@ export default function OrganizerDashboard() {
         </div>
 
         <div style={{ marginTop: '40px', textAlign: 'center' }}>
-          <Link to="/" style={{ color: '#111827', textDecoration: 'none', fontWeight: '600' }}>
-            ← Back to Home
+          <Link to="/events" style={{ color: '#111827', textDecoration: 'none', fontWeight: '600' }}>
+            ← Back to Events
           </Link>
         </div>
       </div>

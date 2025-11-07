@@ -27,19 +27,22 @@ class Event(models.Model):
     description = models.TextField(blank=True)
     organization = models.CharField(max_length=120)
     category = models.CharField(max_length=50)
-    # Link an Event to an organizer user (optional for existing records)
-    organizer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='organized_events'
-    )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     image_url = models.URLField(blank=True)
     price_cents = models.PositiveIntegerField(default=0)
+    # Admin approval flag: new events created by organizers are set False and
+    # require admin approval before being visible in public listings.
+    is_approved = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Optional organizer FK: some forks of this project include it, add as nullable for compatibility
+    organizer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='events'
+    )
 
     def __str__(self):
         return f"{self.title} @ {self.start_time:%Y-%m-%d %H:%M}"
@@ -80,22 +83,6 @@ class Ticket(models.Model):
     )
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="event_management_tickets_owned")
     qr = models.ImageField(upload_to="qr_codes/", null=True, blank=True)  # ✅ new field
-    # Ticket lifecycle status: Pending = not yet checked in, CHECKED_IN, NO_SHOW, CANCELLED
-    PENDING = "PENDING"
-    CHECKED_IN = "CHECKED_IN"
-    NO_SHOW = "NO_SHOW"
-    CANCELLED = "CANCELLED"
-    STATUS_CHOICES = [
-        (PENDING, "Pending"),
-        (CHECKED_IN, "Checked In"),
-        (NO_SHOW, "No Show"),
-        (CANCELLED, "Cancelled"),
-    ]
-
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
-    checked_in_at = models.DateTimeField(null=True, blank=True)
-
-    # backward-compatible convenience flag kept for older code paths
     is_used = models.BooleanField(default=False)
 
     def __str__(self):

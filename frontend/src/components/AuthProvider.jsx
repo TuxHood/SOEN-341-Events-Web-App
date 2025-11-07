@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getAccessToken, getProfile, login as apiLogin, logout as apiLogout } from "../api/auth.js";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { getAccessToken, getProfile, login as apiLogin, logout as apiLogout, refreshAccess } from "../api/auth.js";
 
 
 const AuthCtx = createContext(null);
@@ -8,6 +8,9 @@ const AuthCtx = createContext(null);
 export function AuthProvider({ children }) {
  const [user, setUser] = useState(null);
  const [ready, setReady] = useState(false);
+ const refreshTimerRef = useRef(null);
+ const inFlightRefresh = useRef(null);
+ 
 
 
  // On mount: if we have a token, try to load user profile
@@ -19,6 +22,12 @@ export function AuthProvider({ children }) {
        if (token) {
          const me = await getProfile();
          if (!cancelled) setUser(me ?? { email: localStorage.getItem("email") || "" });
+          // schedule proactive refresh based on token expiry
+          try {
+            scheduleRefreshFromToken(token);
+          } catch (e) {
+            // ignore scheduling errors
+          }
        }
      } catch {
        // Don't nuke tokens on transient errors; keep a minimal user
@@ -29,6 +38,72 @@ export function AuthProvider({ children }) {
    })();
    return () => { cancelled = true; };
  }, []);
+
+  // Decode JWT payload safely
+  function decodeJwtPayload(token) {
+    try {
+      const parts = token.split('.');
+      if (parts.length < 2) return null;
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const str = atob(b64);
+      const decoded = decodeURIComponent(str.split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(decoded);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearRefreshTimer() {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }
+
+  function scheduleRefreshFromToken(token) {
+    clearRefreshTimer();
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.exp) return; // nothing to schedule
+    const expMs = payload.exp * 1000;
+    const now = Date.now();
+    // refresh 60 seconds before expiry, but at least 1s from now
+    const buffer = 60 * 1000;
+    const msUntilRefresh = Math.max(1000, expMs - now - buffer);
+    refreshTimerRef.current = setTimeout(async () => {
+      try {
+        await doRefresh();
+      } catch (e) {
+        // do nothing — doRefresh will emit an event if refresh failed
+      }
+    }, msUntilRefresh);
+  }
+
+  async function doRefresh() {
+    // Avoid parallel refreshes
+    if (inFlightRefresh.current) return inFlightRefresh.current;
+    inFlightRefresh.current = (async () => {
+      try {
+        const newAccess = await refreshAccess();
+        // reschedule using newly issued token
+        if (newAccess) scheduleRefreshFromToken(newAccess);
+        return newAccess;
+      } catch (e) {
+        // notify listeners that refresh failed
+        try {
+          window.dispatchEvent(new CustomEvent('auth:refresh_failed', { detail: { reason: e?.message || 'Session expired' } }));
+        } catch (ev) {}
+        throw e;
+      } finally {
+        inFlightRefresh.current = null;
+      }
+    })();
+    return inFlightRefresh.current;
+  }
+
+  // Previously we displayed a temporary session-expired banner here.
+  // The banner has been removed per UX request; we still clear timers and user state when refresh fails.
 
 
  // This mirrors your earlier “mockLogin”: return a route based on email for UX consistency
@@ -43,13 +118,19 @@ export function AuthProvider({ children }) {
    } catch {
      setUser({ email });
    }
+  // schedule proactive refresh for this session if token present
+  try {
+    const token = getAccessToken();
+    if (token) scheduleRefreshFromToken(token);
+  } catch (e) {}
    return { route };
  }
 
 
  function logout() {
-   apiLogout();
-   setUser(null);
+  apiLogout();
+  clearRefreshTimer();
+  setUser(null);
  }
 
 
@@ -59,11 +140,11 @@ export function AuthProvider({ children }) {
  }), [user, ready]);
 
 
- return (
-   <AuthCtx.Provider value={value}>
-     {children}
-   </AuthCtx.Provider>
- );
+  return (
+    <AuthCtx.Provider value={value}>
+      {children}
+    </AuthCtx.Provider>
+  );
 }
 
 
