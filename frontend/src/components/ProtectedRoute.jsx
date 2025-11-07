@@ -8,9 +8,8 @@ export default function ProtectedRoute({ children }) {
   if (!ctx) return children ?? <Outlet />;
 
   const { user, ready } = ctx;
-  // If auth isn't initialized yet, don't redirect — wait for ready state
-  if (ready === false) return null;
-
+  // Wait for auth to initialize on page refresh so we don't wrongly redirect
+  if (!ready) return null; // or a small loader
   if (!user) return <Navigate to="/auth/login" replace state={{ from: location }} />;
 
   return children ?? <Outlet />;

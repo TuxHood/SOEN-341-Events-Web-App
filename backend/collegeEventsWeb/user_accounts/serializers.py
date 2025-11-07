@@ -28,13 +28,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             role=role,
             status=status,
         )
-        # If this registration requests organizer role, mark approval requested
-        if role == User.Role.ORGANIZER:
-            try:
-                user.request_organizer_approval()
-            except Exception:
-                # Fallback: ignore errors here but return the created user
-                pass
         return user
 
 

@@ -17,6 +17,8 @@ import AttendeeList from "./pages/AttendeeList";
 
 import AuthProvider from "./components/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
+import OrganizerRoute from "./components/OrganizerRoute";
+import AdminRoute from "./components/AdminRoute";
 import TicketConfirmation from "./pages/TicketConfirmation";
 import BuyTicket from "./pages/BuyTicket";
 import MyTickets from "./pages/MyTickets";
@@ -66,13 +68,10 @@ function AppShell() {
       )}
 
       <Routes>
-        {/* Public */}
+    {/* Public */}
         <Route path="/" element={<Home />} />
         <Route path="/events/:eventId" element={<EventDetail />} />
-  <Route path="/events/:eventId/edit" element={<EventEdit />} />
-        <Route path="/events/:eventId/analytics" element={<EventAnalyticsDashboard />} />
-        <Route path="/organizer" element={<OrganizerDashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+    {/* Auth pages */}
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/sign-up" element={<SignUpPage />} />
 
@@ -83,17 +82,27 @@ function AppShell() {
           <Route path="/tickets/:tid/qr" element={<TicketQR />} />
         </Route>
 
-        {/* Ticket flow */}
+        {/* Ticket flow (public endpoints that don’t require role) */}
         <Route path="/events/:eventId/ticket" element={<TicketConfirmation />} />
         <Route path="/events/:eventId/buy" element={<BuyTicket />} />
-  <Route path="/tickets/scan" element={<TicketScanner />} />
-  <Route path="/events/:eventId/scan" element={<EventScanner />} />
 
-        {/* Organizer/Admin pages */}
-        <Route path="/events/:eventId/attendees" element={<AttendeeList />} />
-        <Route path="/events" element={<EventDiscovery />} />
-        <Route path="/admin/organizer-approval" element={<OrganizerApproval />} />
-        <Route path="/admin/approvals" element={<AdminApprovals />} />
+        {/* Organizer/Admin restricted routes */}
+        <Route element={<OrganizerRoute />}>
+          <Route path="/organizer" element={<OrganizerDashboard />} />
+          <Route path="/events/:eventId/edit" element={<EventEdit />} />
+          <Route path="/events/:eventId/scan" element={<EventScanner />} />
+          <Route path="/events/:eventId/attendees" element={<AttendeeList />} />
+          <Route path="/tickets/scan" element={<TicketScanner />} />
+          <Route path="/events/:eventId/analytics" element={<EventAnalyticsDashboard />} />
+        </Route>
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/organizer-approval" element={<OrganizerApproval />} />
+          <Route path="/admin/approvals" element={<AdminApprovals />} />
+        </Route>
+
+  {/* Keep events discovery accessible */}
+  <Route path="/events" element={<EventDiscovery />} />
       </Routes>
     </>
   );
