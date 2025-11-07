@@ -30,6 +30,7 @@ function AppShell() {
   const { user, ready } = useAuth();
 
   const isAdmin = Boolean(user && (user.role === 'admin' || user.is_staff));
+  const isOrganizer = Boolean(user && (user.role === 'organizer' || isAdmin));
 
   // Hide nav on auth pages
   const hideNav = ["/auth/login", "/auth/sign-up"];
@@ -42,9 +43,11 @@ function AppShell() {
           <Link to="/" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
             Home
           </Link>
-          <Link to="/organizer" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-            Organizer
-          </Link>
+          {isOrganizer && (
+            <Link to="/organizer" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
+              Organizer
+            </Link>
+          )}
           {/* Show admin-only links only to admins/staff */}
           {isAdmin && (
             <>
