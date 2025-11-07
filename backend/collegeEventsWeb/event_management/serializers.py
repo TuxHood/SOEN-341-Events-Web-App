@@ -107,7 +107,7 @@ class EventSerializer(serializers.ModelSerializer):
 
 class TicketSerializer(serializers.ModelSerializer):
     event = EventSerializer(read_only=True)
-    qr_png_url = serializers.SerializerMethodField(read_only=True)  # <-- add this
+    qr_png_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Ticket
@@ -115,21 +115,12 @@ class TicketSerializer(serializers.ModelSerializer):
         extra_kwargs = {"owner": {"write_only": True}}
 
     def get_qr_png_url(self, obj):
-        # use the real model field name: `qr`
-        if not getattr(obj, "qr", None):
-            return None
-
-        # where the file will live on disk
-        rel_path = os.path.join("qr", f"{obj.id}.png")
-        abs_path = os.path.join(settings.MEDIA_ROOT, rel_path)
-
-        # generate once if missing
-        if not os.path.exists(abs_path):
-            os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-            img = qrcode.make(obj.qr)   # <-- use obj.qr, not obj.qr_code
-            img.save(abs_path)
-
-        # public URL (absolute if request exists)
-        url = settings.MEDIA_URL + rel_path.replace(os.sep, "/")
-        request = self.context.get("request")
-        return request.build_absolute_uri(url) if request else url
+        # If an image was saved to the ImageField, return its URL
+        try:
+            if getattr(obj, "qr", None):
+                url = obj.qr.url
+                request = self.context.get("request")
+                return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+        return None

@@ -84,6 +84,16 @@ class Ticket(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="event_management_tickets_owned")
     qr = models.ImageField(upload_to="qr_codes/", null=True, blank=True)  # ✅ new field
     is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    # Restore legacy status column that still exists in some DBs to avoid NOT NULL violations
+    PENDING, CHECKED_IN, NO_SHOW, CANCELLED = "PENDING", "CHECKED_IN", "NO_SHOW", "CANCELLED"
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (CHECKED_IN, "Checked In"),
+        (NO_SHOW, "No Show"),
+        (CANCELLED, "Cancelled"),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
 
     def __str__(self):
         return f"Ticket {self.id} - {self.event}"

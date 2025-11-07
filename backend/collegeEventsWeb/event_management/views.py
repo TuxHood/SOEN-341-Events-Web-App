@@ -1,10 +1,12 @@
 # backend/event_management/views.py
 import csv
 import qrcode
+import os
 from io import BytesIO
 
 from django.core.exceptions import FieldDoesNotExist
 from django.core.files.base import ContentFile
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
@@ -18,6 +20,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import PermissionDenied
 
 from .models import Event, Category, Venue, Ticket
+from django.db import IntegrityError
 from .serializers import (
     EventSerializer, CategorySerializer, VenueSerializer, TicketSerializer
 )
@@ -411,23 +414,65 @@ def buy_ticket(request, event_id: int):
         return Response({"detail": "Event is not open for registration."}, status=403)
     user = request.user
 
-    if Ticket.objects.filter(event=event, owner=user).exists():  # adjust if model uses 'user'
-        return Response({"detail": "You already have a ticket for this event."}, status=400)
+    # Idempotent behavior: if a ticket already exists (possibly from an earlier attempt
+    # that failed while saving QR), return the existing ticket instead of 400.
+    existing = Ticket.objects.filter(event=event, owner=user).first()
+    if existing:
+        return Response({
+            "ticket_id": str(existing.id),
+            "event": event.id,
+            "detail": "Ticket already exists.",
+            "qr_code": getattr(existing, "qr_code", None) or str(existing.id),
+            "qr_png_url": (existing.qr.url if hasattr(existing, "qr") and existing.qr else None),
+        }, status=200)
 
-    ticket = Ticket.objects.create(event=event, owner=user)
+    try:
+        ticket = Ticket.objects.create(event=event, owner=user)
+    except IntegrityError as e:
+        # In case of a race condition, return the existing ticket if present
+        existing = Ticket.objects.filter(event=event, owner=user).first()
+        if existing:
+            return Response({
+                "ticket_id": str(existing.id),
+                "event": event.id,
+                "detail": "Ticket already exists.",
+                "qr_code": getattr(existing, "qr_code", None) or str(existing.id),
+                "qr_png_url": (existing.qr.url if hasattr(existing, "qr") and existing.qr else None),
+            }, status=200)
+        # Surface diagnostic info in development
+        from django.conf import settings as _settings
+        msg = "Could not create ticket."
+        if getattr(_settings, 'DEBUG', False):
+            msg = f"IntegrityError: {e}"
+        return Response({"detail": msg}, status=400)
+    except Exception as e:
+        from django.conf import settings as _settings
+        msg = "Could not create ticket."
+        if getattr(_settings, 'DEBUG', False):
+            msg = f"{e.__class__.__name__}: {e}"
+        return Response({"detail": msg}, status=400)
 
-    # Optional: save PNG to a File/ImageField named 'qr'
+    # Optional: save PNG to a File/ImageField named 'qr'.
+    # Be defensive about missing MEDIA_ROOT directory to avoid 500s.
     if hasattr(ticket, "qr"):
-        qr_img = qrcode.make(str(ticket.id))
-        buf = BytesIO()
-        qr_img.save(buf, format="PNG")
-        ticket.qr.save(f"ticket-{ticket.id}.png", ContentFile(buf.getvalue()), save=True)
+        try:
+            # Ensure MEDIA_ROOT exists so FileSystemStorage can write files
+            os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+
+            qr_img = qrcode.make(str(ticket.id))
+            buf = BytesIO()
+            qr_img.save(buf, format="PNG")
+            ticket.qr.save(f"ticket-{ticket.id}.png", ContentFile(buf.getvalue()), save=True)
+        except Exception:
+            # If QR image saving fails (e.g., no filesystem), continue without blocking purchase
+            pass
 
     return Response({
         "ticket_id": str(ticket.id),
         "event": event.id,
         "detail": "Ticket purchased.",
-        "qr_code": getattr(ticket, "qr_code", None),
+        # Provide a textual QR payload as a fallback (works for client-side QR rendering)
+        "qr_code": getattr(ticket, "qr_code", None) or str(ticket.id),
         "qr_png_url": (ticket.qr.url if hasattr(ticket, "qr") and ticket.qr else None),
     }, status=201)
 
