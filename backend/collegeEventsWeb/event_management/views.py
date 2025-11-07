@@ -224,6 +224,19 @@ class EventViewSet(viewsets.ModelViewSet):
         total_tickets = event.event_management_tickets.count()
         checked_in = event.event_management_tickets.filter(is_used=True).count()
 
+        # Determine if the event has ended to compute no-shows as a derived metric.
+        ended = False
+        try:
+            # Support either end_time or end_at
+            end_ts = getattr(event, 'end_time', None)
+            if end_ts is None:
+                end_ts = getattr(event, 'end_at', None)
+            if end_ts is not None:
+                from django.utils.timezone import now as _now
+                ended = end_ts <= _now()
+        except Exception:
+            ended = False
+
         # Event model may not have a Venue relation in this fork; be defensive.
         venue_obj = getattr(event, 'venue', None)
         if venue_obj is not None and hasattr(venue_obj, 'capacity'):
@@ -243,6 +256,8 @@ class EventViewSet(viewsets.ModelViewSet):
             'tickets_issued': total_tickets,
             'tickets_checked_in': checked_in,
             'tickets_pending': total_tickets - checked_in,
+            'no_shows': (total_tickets - checked_in) if ended else 0,
+            'has_ended': ended,
             'venue_capacity': venue_capacity,
             'remaining_capacity': remaining_capacity,
             'check_in_percentage': round(check_in_percentage, 2),

@@ -4,37 +4,29 @@ from ...models import Ticket
 
 
 class Command(BaseCommand):
-    help = 'Mark pending tickets as NO_SHOW when their event has finished.'
+    help = 'Report derived no-shows for events that have ended. (Legacy: used to set Ticket.status=NO_SHOW)'
 
     def add_arguments(self, parser):
-        parser.add_argument('--dry-run', action='store_true', help='Show what would be changed but do not write to the database')
         parser.add_argument('--event-id', type=int, help='Optional: only process tickets for a specific event id')
+        parser.add_argument('--limit', type=int, default=10, help='Print at most N example tickets')
 
     def handle(self, *args, **options):
         now = timezone.now()
-        dry_run = options.get('dry_run')
         event_id = options.get('event_id')
+        limit = options.get('limit') or 10
 
-        qs = Ticket.objects.filter(status=Ticket.PENDING, event__end_time__lt=now)
+        # The Ticket model no longer has a status/checked_in_at field. A no-show is
+        # derived as: tickets for ended events where is_used=False.
+        qs = Ticket.objects.filter(event__end_time__lt=now, is_used=False)
         if event_id:
             qs = qs.filter(event_id=event_id)
 
-        total_pending = qs.count()
-        if total_pending == 0:
-            self.stdout.write(self.style.SUCCESS('No pending tickets to mark as no-show.'))
+        total_no_shows = qs.count()
+        if total_no_shows == 0:
+            self.stdout.write(self.style.SUCCESS('No derived no-shows found.'))
             return
 
-        self.stdout.write(f'Found {total_pending} pending ticket(s) where event.end_time < {now.isoformat()}')
-
-        if dry_run:
-            # Show a few examples
-            examples = qs[:10]
-            for t in examples:
-                self.stdout.write(f'  Ticket {t.id} (event={t.event_id}) -> would be set to NO_SHOW')
-            self.stdout.write(self.style.WARNING('Dry run; no changes were made.'))
-            return
-
-        # Perform bulk update: set status=NO_SHOW, checked_in_at=None, is_used=False
-        updated = qs.update(status=Ticket.NO_SHOW, checked_in_at=None, is_used=False)
-
-        self.stdout.write(self.style.SUCCESS(f'Successfully updated {updated} ticket(s) to NO_SHOW.'))
+        self.stdout.write(f'Derived no-shows: {total_no_shows} ticket(s) where event.end_time < {now.isoformat()} and is_used=False')
+        for t in qs.select_related('event', 'owner')[:limit]:
+            self.stdout.write(f'  Ticket {t.id} (event={getattr(t.event, "title", t.event_id)}) owner={getattr(t.owner, "email", t.owner_id)}')
+        self.stdout.write(self.style.NOTICE('Note: Ticket.status has been removed; this command is report-only now.'))

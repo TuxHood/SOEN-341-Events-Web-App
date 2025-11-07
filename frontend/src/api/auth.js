@@ -39,18 +39,15 @@ export async function login(email, password) {
   };
 }
 
-export async function registerStudent(full_name, email, password, role = undefined) {
-  const payload = {
-    name: full_name,
-    email,
-    password,
-  };
-  if (role) payload.role = role;
-
+export async function registerStudent(full_name, email, password) {
   const res = await fetch(`${API_ROOT}/users/register/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      name: full_name,
+      email,
+      password,
+    }),
   });
 
   const text = await res.text();
@@ -77,36 +74,6 @@ export async function getProfile() {
   return res.json();
 }
 
-export async function refreshAccess() {
-  // Try to refresh the access token using the stored refresh token.
-  const refresh = localStorage.getItem('refresh') || localStorage.getItem('refresh_token');
-  if (!refresh) throw new Error('No refresh token available');
-
-  const res = await fetch(`${API_ROOT}/token/refresh/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh }),
-  });
-
-  const text = await res.text();
-  if (!res.ok) {
-    // If refresh fails, clear tokens to force a re-login upstream
-    logout();
-    throw new Error(text || 'Token refresh failed');
-  }
-
-  const data = JSON.parse(text);
-  if (!data.access) {
-    logout();
-    throw new Error('Refresh response did not contain access token');
-  }
-
-  // Persist new access token (support both key names used by the app)
-  localStorage.setItem('access', data.access);
-  localStorage.setItem('access_token', data.access);
-  return data.access;
-}
-
 export function logout() {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
@@ -126,3 +93,34 @@ export function authHeaders() {
 
 // Export a stable `BASE` name for other modules that import it.
 export const BASE = API_ROOT;
+
+// Refresh the access token using the stored refresh token. Returns the new
+// access token string if successful. Throws on failure so callers can react
+// (e.g., redirect to login).
+export async function refreshAccess() {
+  // Support both legacy and newer refresh key names
+  const refresh = localStorage.getItem('refresh') || localStorage.getItem('refresh_token');
+  if (!refresh) throw new Error('No refresh token');
+
+  const res = await fetch(`${API_ROOT}/token/refresh/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || 'Refresh failed');
+  let data = {};
+  try {
+    data = JSON.parse(text || '{}');
+  } catch (_) {}
+
+  if (data.access) {
+    try { localStorage.setItem('access', data.access); } catch (_) {}
+  }
+  if (data.refresh) {
+    try { localStorage.setItem('refresh', data.refresh); } catch (_) {}
+  }
+  return data.access || null;
+}
