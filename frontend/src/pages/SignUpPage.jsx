@@ -55,17 +55,9 @@ export default function SignUpPage() {
   setLoading(true);
   try {
     // Our API expects full_name, email, password at /api/users/register/
-    await registerStudent(formData.name, formData.email, formData.password);
-
-    if (step === 'organizer') {
-      alert(
-        'Success! Your organizer account is pending approval. You will receive an email once approved.'
-      );
-    } else {
-      alert(
-        'Success! Your account has been created. You can now log in.'
-      );
-    }
+    // include role so backend creates the requested account; approval flow removed from UI
+    await registerStudent(formData.name, formData.email, formData.password, step === 'organizer' ? 'organizer' : undefined);
+    alert('Success! Your account has been created. You can now log in.');
 
     navigate('/auth/login');
   } catch (err) {
@@ -141,11 +133,7 @@ export default function SignUpPage() {
               <h2>
                 {step === 'student' ? 'Student Registration' : 'Organizer Registration'}
               </h2>
-              {step === 'organizer' && (
-                <p className="approval-notice">
-                  ⚠️ Organizer accounts require admin approval before activation
-                </p>
-              )}
+              {/* Organizer approval removed from UI */}
             </div>
 
             <form onSubmit={handleSubmit} className="signup-form">

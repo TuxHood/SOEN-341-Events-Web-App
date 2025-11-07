@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/apiClient";
 
 export default function AdminOrganizerApproval() {
@@ -97,6 +98,9 @@ export default function AdminOrganizerApproval() {
           <p style={{ color: "#6b7280", fontSize: "16px" }}>
             Approve or reject pending organizer account requests
           </p>
+          <div style={{ marginTop: 8 }}>
+            <Link to="/admin" style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 600 }}>Return to Dashboard</Link>
+          </div>
         </div>
       </div>
 

@@ -17,11 +17,20 @@ const EventAnalyticsDashboard = () => {
       setLoading(true);
       setError(null);
       const response = await analyticsAPI.getEventAnalytics(eventId);
-      
       if (!response.ok) {
-        throw new Error(response.data.error || 'Failed to fetch analytics');
+        // Show a clear access-denied message for auth/permission failures
+        if (response.status === 401 || response.status === 403) {
+          const detail = response.data && (response.data.detail || response.data.error);
+          setError(detail || 'Access Denied — must have organizer privileges');
+          return;
+        }
+
+        // other errors: surface server message if present
+        const msg = (response.data && (response.data.error || response.data.detail)) || 'Failed to fetch analytics';
+        setError(msg);
+        return;
       }
-      
+
       setAnalytics(response.data);
     } catch (err) {
       setError(err.message);
@@ -114,16 +123,16 @@ const EventAnalyticsDashboard = () => {
         {/* Key Metrics Cards - Event Card Style */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
           {/* Tickets Issued */}
-          <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-            <div style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)', padding: '1.5rem', color: 'white' }}>
+          <div style={{ borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', background: 'linear-gradient(135deg, #3B82F6, #2563EB)' }}>
+            <div style={{ padding: '1.5rem', color: 'white', minHeight: 160, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', opacity: 0.9 }}>Tickets Issued</div>
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{analytics.tickets_issued}</div>
             </div>
           </div>
 
           {/* Checked In */}
-          <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-            <div style={{ background: 'linear-gradient(135deg, #22C55E, #16A34A)', padding: '1.5rem', color: 'white' }}>
+          <div style={{ borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', background: 'linear-gradient(135deg, #22C55E, #16A34A)' }}>
+            <div style={{ padding: '1.5rem', color: 'white', minHeight: 160, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', opacity: 0.9 }}>Checked In</div>
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{analytics.tickets_checked_in}</div>
               <div style={{ fontSize: '0.95rem', marginTop: '0.5rem', opacity: 0.9 }}>{analytics.check_in_percentage}% attendance</div>
@@ -131,16 +140,24 @@ const EventAnalyticsDashboard = () => {
           </div>
 
           {/* Pending Check-in */}
-          <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-            <div style={{ background: 'linear-gradient(135deg, #F59E42, #D97706)', padding: '1.5rem', color: 'white' }}>
+          <div style={{ borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', background: 'linear-gradient(135deg, #F59E42, #D97706)' }}>
+            <div style={{ padding: '1.5rem', color: 'white', minHeight: 160, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', opacity: 0.9 }}>Pending Check-in</div>
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{analytics.tickets_pending}</div>
             </div>
           </div>
 
+          {/* No-shows */}
+          <div style={{ borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', background: 'linear-gradient(135deg, #F87171, #DC2626)' }}>
+            <div style={{ padding: '1.5rem', color: 'white', minHeight: 160, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', opacity: 0.9 }}>No-shows</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{analytics.tickets_no_show || 0}</div>
+            </div>
+          </div>
+
           {/* Venue Capacity */}
-          <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-            <div style={{ background: 'linear-gradient(135deg, #A78BFA, #7C3AED)', padding: '1.5rem', color: 'white' }}>
+          <div style={{ borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', background: 'linear-gradient(135deg, #A78BFA, #7C3AED)' }}>
+            <div style={{ padding: '1.5rem', color: 'white', minHeight: 160, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', opacity: 0.9 }}>Venue Capacity</div>
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{analytics.venue_capacity}</div>
               <div style={{ fontSize: '0.95rem', marginTop: '0.5rem', opacity: 0.9 }}>{analytics.remaining_capacity} remaining</div>
@@ -225,6 +242,10 @@ const EventAnalyticsDashboard = () => {
                   <span style={{ color: '#4B5563', fontWeight: 500 }}>Pending Check-in</span>
                   <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#F59E42' }}>{analytics.tickets_pending}</span>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #E5E7EB' }}>
+                  <span style={{ color: '#4B5563', fontWeight: 500 }}>No-shows</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#DC2626' }}>{analytics.tickets_no_show || 0}</span>
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #E5E7EB' }}>
@@ -234,6 +255,10 @@ const EventAnalyticsDashboard = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #E5E7EB' }}>
                   <span style={{ color: '#4B5563', fontWeight: 500 }}>Remaining Capacity</span>
                   <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#A78BFA' }}>{analytics.remaining_capacity}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #E5E7EB' }}>
+                  <span style={{ color: '#4B5563', fontWeight: 500 }}>Tickets Cancelled</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#9CA3AF' }}>{analytics.tickets_cancelled || 0}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #E5E7EB' }}>
                   <span style={{ color: '#4B5563', fontWeight: 500 }}>Check-in Rate</span>
