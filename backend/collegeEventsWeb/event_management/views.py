@@ -7,6 +7,9 @@ import csv
 from .models import Event, Category, Venue
 from .serializers import EventSerializer, CategorySerializer, VenueSerializer
 
+# FIXED IMPORTS:
+from ticket_services.models import Ticket
+
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
@@ -126,6 +129,7 @@ class EventViewSet(viewsets.ModelViewSet):
             ])
         
         return response
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -133,4 +137,3 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class VenueViewSet(viewsets.ModelViewSet):
     queryset = Venue.objects.all()
     serializer_class = VenueSerializer
-
