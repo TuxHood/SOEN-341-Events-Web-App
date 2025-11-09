@@ -23,7 +23,7 @@ urlpatterns = [
     path("<int:user_id>/approve/", ApproveOrganizerView.as_view(), name="approve-organizer"),
     path("<int:user_id>/reject/", RejectOrganizerView.as_view(), name="reject-organizer"),
     
-    # Utility endpoints (From PR version)
+    # Utility endpoints
     path("debug-auth/", DebugAuthView.as_view(), name="debug-auth"),
     path("csrf/", GetCSRFTokenView.as_view(), name="get-csrf"),
     

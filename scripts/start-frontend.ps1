@@ -23,5 +23,12 @@ if (-Not (Test-Path -Path $requiredPkgPath)) {
     npm install recharts --save
 }
 
+# Ensure axios is installed (common dependency for api clients)
+$axiosPkgPath = Join-Path 'node_modules' 'axios'
+if (-Not (Test-Path -Path $axiosPkgPath)) {
+    Write-Host "Detected missing package 'axios' - installing..."
+    npm install axios --save
+}
+
 Write-Host "Starting Vite dev server"
 npm run dev

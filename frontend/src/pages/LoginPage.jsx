@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS, apiCall } from '../api/config';
+import api from '../api/apiClient';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,6 +19,15 @@ export default function LoginPage() {
       return;
     }
     try {
+      // Ensure csrf cookie is present (dev helper) before POSTing
+      try {
+        // Use the axios instance which sets withCredentials so the cookie is
+        // correctly stored by the browser behind the Vite proxy.
+        await api.get('/csrf/');
+      } catch (e) {
+        // ignore; if csrf endpoint isn't reachable the login may still work
+      }
+
       const result = await apiCall(API_ENDPOINTS.login, {
         method: 'POST',
         body: JSON.stringify({ email, password }),
@@ -35,6 +45,12 @@ export default function LoginPage() {
       // Store access token for API use (frontend may also read cookie set by backend)
       if (result.data.access) {
         localStorage.setItem('access_token', result.data.access);
+        // Ensure axios instance also sends the new token for subsequent requests
+        try {
+          api.defaults.headers.common['Authorization'] = `Bearer ${result.data.access}`;
+        } catch (e) {
+          // ignore if axios isn't available
+        }
       }
 
       if (user.role === 'admin') navigate('/admin');

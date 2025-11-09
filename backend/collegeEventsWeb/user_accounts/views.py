@@ -13,7 +13,7 @@ from .permissions import IsAdmin
 
 
 # -------------------------
-# Utility Views (From PR Version)
+# Utility Views
 # -------------------------
 class DebugAuthView(APIView):
     """Dev-only: return auth debug info so frontend can diagnose token/cookie issues."""
@@ -50,7 +50,7 @@ class GetCSRFTokenView(APIView):
 
 
 # -------------------------
-# JWT Helper (From PR Version - More Secure)
+# JWT Helper
 # -------------------------
 def set_jwt_cookie(response, access_token, secure=False, samesite="Lax"):
     response.set_cookie(
@@ -66,7 +66,7 @@ def set_jwt_cookie(response, access_token, secure=False, samesite="Lax"):
 
 
 # -------------------------
-# Authentication Views (Hybrid)
+# Authentication Views
 # -------------------------
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -84,8 +84,8 @@ class RegisterView(APIView):
             # Generate tokens
             refresh = RefreshToken.for_user(user)
             access = str(refresh.access_token)
-
-            # Use secure cookie storage (From PR version)
+            
+            # Use secure cookie storage
             resp = Response({
                 'user': UserSerializer(user).data,
                 'token_type': 'Bearer',
@@ -108,7 +108,7 @@ class LoginView(APIView):
         """
         serializer = LoginSerializer(data=request.data, context={'request': request})
         
-        # Use PR version's better error handling
+        # Use better error handling
         try:
             serializer.is_valid(raise_exception=True)
         except drf_serializers.ValidationError as exc:
@@ -120,14 +120,13 @@ class LoginView(APIView):
                 if isinstance(d, (list, tuple)):
                     return extract_message(d[0]) if d else None
                 return str(d)
-
             message = extract_message(exc.detail)
             return Response({'detail': message or 'Invalid request.'}, status=status.HTTP_400_BAD_REQUEST)
         
         user = serializer.validated_data["user"]
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
-
+        
         # Use secure cookie storage
         resp = Response({
             "user": UserSerializer(user).data,
@@ -147,7 +146,7 @@ class LogoutView(APIView):
         Enhanced logout with token blacklisting AND cookie removal.
         """
         try:
-            # Your token blacklisting logic
+            # Token blacklisting logic
             refresh_token = request.data.get("refresh")
             if refresh_token:
                 token = RefreshToken(refresh_token)
@@ -156,7 +155,7 @@ class LogoutView(APIView):
             # Continue with logout even if blacklist fails
             pass
         
-        # PR version's cookie cleanup
+        # Cookie cleanup
         resp = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
         resp.delete_cookie("access_token", path="/")
         return resp
@@ -264,19 +263,18 @@ class RejectOrganizerView(APIView):
 
 
 # -------------------------
-# User ViewSet (From PR Version - For CRUD Operations)
+# User ViewSet (For CRUD Operations)
 # -------------------------
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAdminUser]
 
-    # Optional: Add action endpoints that use your RBAC logic
     @action(detail=True, methods=['post'])
-    def approve_organizer_via_action(self, request, pk=None):
+    def approve_organizer(self, request, pk=None):
         """
         Alternative organizer approval via ViewSet action.
-        Can be used alongside your dedicated approval views.
+        Can be used alongside dedicated approval views.
         """
         user = self.get_object()
         if user.role == 'organizer' and user.status == 'pending':
@@ -285,6 +283,26 @@ class UserViewSet(viewsets.ModelViewSet):
             user.save()
             return Response(
                 {"message": f"Organizer {user.name} approved."},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {"error": "User is not a pending organizer."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    @action(detail=True, methods=['post'])
+    def reject_organizer(self, request, pk=None):
+        """
+        Alternative organizer rejection via ViewSet action.
+        Can be used alongside dedicated rejection views.
+        """
+        user = self.get_object()
+        if user.role == 'organizer' and user.status == 'pending':
+            user.status = 'rejected'
+            user.is_active = False
+            user.save()
+            return Response(
+                {"message": f"Organizer {user.name} rejected."},
                 status=status.HTTP_200_OK
             )
         return Response(
