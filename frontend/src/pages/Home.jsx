@@ -14,7 +14,7 @@ export default function HomePage() {
             or an organizer hosting them, we&apos;ve got you covered.
           </p>
           <div className="cta-row" style={{marginTop:16}}>
-            <Button asChild size="lg">
+            <Button asChild size="lg" style={{ color: "black" }}>
               <Link to="/auth/sign-up">Get Started</Link>
             </Button>
           </div>
@@ -22,7 +22,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="features full-bleed">
+      <section className="features full-bleed" style={{ background: "white"}}>
         <div className="container">
           <h2 className="text-balance text-center text-center" style={{fontSize:'1.25rem', marginBottom:12}}>Everything you need for campus events</h2>
           <div className="features-grid">
@@ -58,7 +58,7 @@ export default function HomePage() {
           <p className="text-muted-foreground" style={{ marginTop: 12, marginBottom: 10 }}>
             Join hundreds of students and organizers already using our platform
           </p>
-          <Button asChild size="lg" style={{ marginTop: 28 }}>
+          <Button asChild size="lg" style={{ marginTop: 28, color: "black" }}>
             <Link to="/auth/sign-up">Create Account</Link>
           </Button>
         </div>

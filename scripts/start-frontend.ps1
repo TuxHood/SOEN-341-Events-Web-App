@@ -10,25 +10,32 @@ if (-not $ProjectRoot) {
 $frontendPath = Join-Path $ProjectRoot 'frontend'
 Set-Location -Path $frontendPath
 
-if (-Not (Test-Path -Path 'node_modules')) {
-    Write-Host "Installing frontend dependencies (npm install)..."
-    npm install
+# Use npm --prefix to avoid accidental execution in the repo root when called via wrappers
+if (-Not (Test-Path -Path (Join-Path $frontendPath 'node_modules'))) {
+    Write-Host "Installing frontend dependencies (npm --prefix $frontendPath install)..."
+    npm --prefix "$frontendPath" install
 }
 
 # Ensure critical packages are present. If a dependency (like recharts) is missing,
 # install it explicitly so all developers get the same runtime behavior.
-$requiredPkgPath = Join-Path 'node_modules' 'recharts'
+$requiredPkgPath = Join-Path $frontendPath 'node_modules\recharts'
 if (-Not (Test-Path -Path $requiredPkgPath)) {
-    Write-Host "Detected missing package 'recharts' - installing..."
-    npm install recharts --save
+    Write-Host "Detected missing package 'recharts' - installing (npm --prefix $frontendPath install recharts)..."
+    npm --prefix "$frontendPath" install recharts --save
 }
 
 # Ensure axios is installed (common dependency for api clients)
-$axiosPkgPath = Join-Path 'node_modules' 'axios'
+$axiosPkgPath = Join-Path $frontendPath 'node_modules\axios'
 if (-Not (Test-Path -Path $axiosPkgPath)) {
-    Write-Host "Detected missing package 'axios' - installing..."
-    npm install axios --save
+    Write-Host "Detected missing package 'axios' - installing (npm --prefix $frontendPath install axios)..."
+    npm --prefix "$frontendPath" install axios --save
 }
 
-Write-Host "Starting Vite dev server"
-npm run dev
+Write-Host "Starting Vite dev server (using npm --prefix $frontendPath run dev)"
+$npmExe = 'npm.cmd'
+try {
+    Start-Process -FilePath $npmExe -ArgumentList '--prefix', $frontendPath, 'run', 'dev' -NoNewWindow -Wait
+} catch {
+    Write-Host "Failed to start Vite via Start-Process with $npmExe; falling back to direct invocation with $npmExe"
+    & $npmExe --prefix $frontendPath run dev
+}

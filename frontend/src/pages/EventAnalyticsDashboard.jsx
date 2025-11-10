@@ -130,11 +130,15 @@ const EventAnalyticsDashboard = () => {
             </div>
           </div>
 
-          {/* Pending Check-in */}
+          {/* Pending vs No-Shows */}
           <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-            <div style={{ background: 'linear-gradient(135deg, #F59E42, #D97706)', padding: '1.5rem', color: 'white' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', opacity: 0.9 }}>Pending Check-in</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{analytics.tickets_pending}</div>
+            <div style={{ background: analytics.has_ended ? 'linear-gradient(135deg, #EF4444, #DC2626)' : 'linear-gradient(135deg, #F59E42, #D97706)', padding: '1.5rem', color: 'white' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', opacity: 0.9 }}>
+                {analytics.has_ended ? 'No-Shows' : 'Pending Check-in'}
+              </div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
+                {analytics.has_ended ? analytics.no_shows : analytics.tickets_pending}
+              </div>
             </div>
           </div>
 
@@ -222,8 +226,10 @@ const EventAnalyticsDashboard = () => {
                   <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#22C55E' }}>{analytics.tickets_checked_in}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #E5E7EB' }}>
-                  <span style={{ color: '#4B5563', fontWeight: 500 }}>Pending Check-in</span>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#F59E42' }}>{analytics.tickets_pending}</span>
+                  <span style={{ color: '#4B5563', fontWeight: 500 }}>{analytics.has_ended ? 'No-Shows' : 'Pending Check-in'}</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: analytics.has_ended ? '#DC2626' : '#F59E42' }}>
+                    {analytics.has_ended ? analytics.no_shows : analytics.tickets_pending}
+                  </span>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

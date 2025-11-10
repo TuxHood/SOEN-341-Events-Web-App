@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/apiClient";
 
 export default function AdminOrganizerApproval() {
@@ -91,6 +92,11 @@ export default function AdminOrganizerApproval() {
     <div style={{ minHeight: "100vh", background: "#f9fafb", paddingBottom: "60px" }}>
       <div style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "40px 24px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+          <div style={{ marginBottom: 8 }}>
+            <Link to="/admin" style={{ color: "#4f46e5", textDecoration: "none" }}>
+              ← Back to Dashboard
+            </Link>
+          </div>
           <h1 style={{ fontSize: "2rem", fontWeight: "700", marginBottom: "8px", color: "#111827" }}>
             Organizer Approval Panel
           </h1>

@@ -1,9 +1,16 @@
 
-// Backend endpoints. For local development we prefer a relative `/api` so Vite's
-// dev server proxy (configured in vite.config.js) forwards requests to the
-// Django backend. You can override with VITE_API_URL in environments where the
-// backend runs on a different host/port.
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+//  backend teammates, update these endpoints when youre ready
+
+// Backend API base. For local development we prefer a relative `/api` so Vite's
+// dev server proxy forwards requests to the Django backend. You can override
+// with VITE_API_URL in environments where the backend runs on a different host/port.
+const rawEnvApi = import.meta.env.VITE_API_URL;
+if (rawEnvApi && /:(5173|5174)\b/.test(rawEnvApi)) {
+  // eslint-disable-next-line no-console
+  console.warn('VITE_API_URL appears to point at the frontend dev server; falling back to /api proxy');
+}
+
+const API_BASE_URL = (rawEnvApi && !/(:(5173|5174)\b)/.test(rawEnvApi)) ? rawEnvApi : (import.meta.env.VITE_API_URL || '/api');
 
 export const API_ENDPOINTS = {
 
@@ -11,6 +18,7 @@ export const API_ENDPOINTS = {
 
   register: `${API_BASE_URL}/users/register/`,
   login: `${API_BASE_URL}/users/login/`,
+  csrf: `${API_BASE_URL}/users/csrf/`,
   
   // Events endpoints (for future use)
 
@@ -44,13 +52,13 @@ export async function apiCall(endpoint, options = {}) {
       let csrftoken = getCookie('csrftoken');
       // If no csrftoken present, call the dev helper to set it (with credentials)
       if (!csrftoken) {
-        try {
-          // call the backend helper to set csrftoken cookie via proxy
-          await fetch('/api/csrf/', { method: 'GET', credentials: 'include' });
-          csrftoken = getCookie('csrftoken');
-        } catch (e) {
-          // ignore — we'll continue and let the request fail with CSRF if necessary
-        }
+          try {
+            // call the backend helper to set csrftoken cookie via proxy
+            await fetch(`${API_BASE_URL}/users/csrf/`, { method: 'GET', credentials: 'include' });
+            csrftoken = getCookie('csrftoken');
+          } catch (e) {
+            // ignore — we'll continue and let the request fail with CSRF if necessary
+          }
       }
       if (csrftoken && !reqHeaders['X-CSRFToken'] && !reqHeaders['X-CSRF-Token']) {
         reqHeaders['X-CSRFToken'] = csrftoken;

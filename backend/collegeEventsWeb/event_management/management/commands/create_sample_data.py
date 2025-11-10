@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
-from event_management.models import Event, Venue, Category
+from ...models import Event, Venue, Category
 from ticket_services.models import Ticket
 from user_accounts.models import User
 
@@ -120,39 +120,47 @@ class Command(BaseCommand):
         ]
 
         for event_data in events_data:
-            # Check if event already exists
+            # Check if event already exists. Our Event model stores simple fields
+            # (organization and category are plain text), so convert related
+            # Venue/Category objects into strings before creating.
+            org_name = event_data['venue'].name if hasattr(event_data['venue'], 'name') else str(event_data['venue'])
+            cat_name = event_data['category'].name if hasattr(event_data['category'], 'name') else str(event_data['category'])
+
             event, created = Event.objects.get_or_create(
                 title=event_data['title'],
                 defaults={
                     'description': event_data['description'],
                     'start_time': timezone.now() + timedelta(days=event_data['days_from_now'], hours=18),
                     'end_time': timezone.now() + timedelta(days=event_data['days_from_now'], hours=22),
-                    'venue': event_data['venue'],
-                    'organizer': organizer,
-                    'category': event_data['category'],
-                    'is_published': True,
+                    'organization': org_name,
+                    'category': cat_name,
+                    'image_url': '',
+                    'price_cents': 0,
                 }
             )
 
             if created:
                 self.stdout.write(self.style.SUCCESS(f'Created event: {event.title}'))
                 
-                # Create tickets for this event
+                # Create tickets for this event. The Ticket model enforces a
+                # unique constraint (event, owner) so create/get to avoid errors.
                 tickets_to_create = event_data['tickets_to_issue']
                 tickets_checked_in = event_data['tickets_checked_in']
-                
+
+                created_count = 0
                 for i in range(tickets_to_create):
                     # Cycle through attendees
                     attendee = attendees[i % len(attendees)]
-                    
-                    # Create ticket
-                    ticket = Ticket.objects.create(
+
+                    ticket, tcreated = Ticket.objects.get_or_create(
                         event=event,
                         owner=attendee,
                     )
-                    
-                    # Mark some tickets as checked in
-                    if i < tickets_checked_in:
+                    if tcreated:
+                        created_count += 1
+
+                    # Mark some tickets as checked in (only mark if newly created)
+                    if tcreated and i < tickets_checked_in:
                         ticket.is_used = True
                         ticket.save()
                 

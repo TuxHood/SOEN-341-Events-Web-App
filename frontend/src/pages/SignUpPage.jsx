@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SignUpPage.css';
-import { API_ENDPOINTS, apiCall } from '../api/config';
+import { registerStudent, registerOrganizer } from '../api/auth';
 
 
 export default function SignUpPage() {
@@ -35,59 +35,43 @@ export default function SignUpPage() {
   // Handle form submission
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  e.preventDefault();
+  setError('');
 
-    // Validation
-    if (!formData.name || !formData.email || !formData.password) {
-      setError('All fields are required');
-      return;
+  // Validation
+  if (!formData.name || !formData.email || !formData.password) {
+    setError('All fields are required');
+    return;
+  }
+  if (formData.password !== formData.confirmPassword) {
+    setError('Passwords do not match');
+    return;
+  }
+  if (formData.password.length < 8) {
+    setError('Password must be at least 8 characters');
+    return;
+  }
+
+  setLoading(true);
+  try {
+    // Send the correct role to the backend so organizer doesn't default to student
+    if (step === 'organizer') {
+      await registerOrganizer(formData.name, formData.email, formData.password);
+      alert('Success! Your organizer account is pending approval. You can log in after an admin approves it.');
+    } else {
+      await registerStudent(formData.name, formData.email, formData.password);
+      alert('Success! Your student account has been created. You can now log in.');
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
+    navigate('/auth/login');
+  } catch (err) {
+    setError(err.message || 'Registration failed. Please try again.');
+    console.error('Registration error:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-
-      // Call the register API endpoint
-
-      const result = await apiCall(API_ENDPOINTS.register, {
-        method: 'POST',
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: step, 
-        }),
-      });
-
-      if (result.ok) {
-        
-        if (step === 'organizer') {
-          alert('Success! Your organizer account is pending approval. You will receive an email once approved.');
-        } else {
-          alert('Success! Your account has been created. You can now log in.');
-        }
-        navigate('/auth/login');
-      } else {
-        setError(result.data.error || 'Registration failed. Please try again.');
-      }
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.');
-      console.error('Registration error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="signup-page">
