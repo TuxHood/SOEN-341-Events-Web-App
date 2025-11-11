@@ -1,17 +1,10 @@
-Quickstart — React (Vite) + Django REST (PowerShell-friendly)
+Quickstart — React (Vite) + Django REST
 
-This quick guide gets a teammate from a fresh clone to a running local dev environment (backend + frontend) on Windows PowerShell. It keeps commands copy-pasteable and focuses on the most common tasks.
-
-Prerequisites
-- Node.js (LTS), Python 3.11+ (3.12 recommended), Git.
-- Optional: PostgreSQL for DB testing; the project defaults to SQLite for local dev.
-Quickstart — React (Vite) + Django REST (PowerShell-friendly)
-
-This short guide helps a teammate get the project running locally on Windows PowerShell. It focuses on the common, copy-pasteable steps for a developer machine.
+This guide gets a teammate from a fresh clone to a running local dev environment (backend + frontend) on Windows (PowerShell) or macOS/Linux (bash). It focuses on copy‑pasteable commands and common tasks.
 
 Prerequisites
 - Node.js (LTS), Python 3.11+ (3.12 recommended), Git
-- Optional: PostgreSQL (the project defaults to SQLite for local dev)
+- Optional: PostgreSQL (project defaults to SQLite for local dev)
 
 1) Clone and open the repo
 
@@ -23,20 +16,29 @@ code .
 
 2) Backend quickstart (Django)
 
-Follow these steps from the repo root. If you prefer automation, the `scripts/start-backend.ps1` script runs the same steps.
+Follow these steps from the repo root. If you prefer automation, use the helper scripts:
+- Windows: `scripts\start-backend.ps1`
+- macOS/Linux: `scripts/start-backend.sh`
 
 - Create and activate a venv (one-time per machine):
 
+Windows (PowerShell):
 ```powershell
 cd backend\collegeEventsWeb
-# create venv if missing
-python -m venv .venv
-# activate for this session
-.\.venv\Scripts\Activate.ps1
+python -m venv .venv  # create venv if missing
+ .\.venv\Scripts\Activate.ps1
+```
+
+macOS/Linux (bash):
+```bash
+cd backend/collegeEventsWeb
+python3 -m venv .venv  # create venv if missing
+source .venv/bin/activate
 ```
 
 - Install dependencies:
 
+Windows (PowerShell):
 ```powershell
 & '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
 if (Test-Path requirements.txt) {
@@ -46,26 +48,53 @@ if (Test-Path requirements.txt) {
 }
 ```
 
- - Apply migrations and create an admin (interactive):
+macOS/Linux (bash):
+```bash
+python -m pip install --upgrade pip setuptools wheel
+if [ -f requirements.txt ]; then
+  pip install -r requirements.txt
+else
+  pip install django==5.2.7 djangorestframework django-cors-headers djangorestframework-simplejwt python-dotenv
+fi
+```
 
+Apply migrations and create an admin (interactive):
+
+Windows (PowerShell):
 ```powershell
 & '.\.venv\Scripts\python.exe' manage.py migrate --noinput
 & '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
 ```
 
-Optional — only if you changed models locally and need new migrations:
-
-```powershell
-# See if model changes exist without writing files
-& '.\.venv\Scripts\python.exe' manage.py makemigrations --check --dry-run
-# If the previous command exits with code 1 (changes detected), then generate migrations:
-& '.\.venv\Scripts\python.exe' manage.py makemigrations
+macOS/Linux (bash):
+```bash
+python manage.py migrate --noinput
+python manage.py createsuperuser --email you@example.com
 ```
 
-- Start the dev server:
+Optional — only if you changed models locally and need new migrations:
 
+Windows (PowerShell):
+```powershell
+& '.\.venv\Scripts\python.exe' manage.py makemigrations --check --dry-run
+& '.\.venv\Scripts\python.exe' manage.py makemigrations  # run if previous exits with code 1
+```
+
+macOS/Linux (bash):
+```bash
+python manage.py makemigrations --check --dry-run || python manage.py makemigrations
+```
+
+Start the dev server:
+
+Windows (PowerShell):
 ```powershell
 & '.\.venv\Scripts\python.exe' manage.py runserver 8000
+```
+
+macOS/Linux (bash):
+```bash
+python manage.py runserver 8000
 ```
 
 If you encounter migration errors (for example: "no such column: \"start_at\"" or attempts to drop a column that doesn't exist), it's often because your local SQLite file and the migration files have diverged. On a local dev machine one safe option is to remove the local SQLite DB and re-run migrations from scratch. WARNING: this deletes local data.
@@ -99,7 +128,15 @@ Quick notes
 
 Open a second terminal (repo root) and run:
 
+Windows (PowerShell):
 ```powershell
+cd frontend
+npm install   # first run only
+npm run dev
+```
+
+macOS/Linux (bash):
+```bash
 cd frontend
 npm install   # first run only
 npm run dev
@@ -109,12 +146,18 @@ Vite runs at http://localhost:5173 by default (may use 5174 if 5173 is busy). Th
 
 4) Helper scripts (recommended)
 
-Use the provided helper scripts to simplify common developer tasks (they activate venvs, install missing deps, etc.):
+Use helper scripts to simplify common tasks (auto env setup, deps, migrations):
 
+Windows (PowerShell):
 ```powershell
-# from repo root
-.\scripts\start-backend.ps1
-.\scripts\start-frontend.ps1  # in a second terminal
+./scripts/start-backend.ps1
+./scripts/start-frontend.ps1  # second terminal
+```
+
+macOS/Linux (bash):
+```bash
+./scripts/start-backend.sh
+./scripts/start-frontend.sh  # second terminal
 ```
 
 5) Admin account patterns (safe)
@@ -232,21 +275,26 @@ If you'd like, tell me which improvement to implement and I will make the change
 
 --
 
-Quicker commands reference (copy-paste)
+Quicker commands reference
 
+Windows (PowerShell):
 ```powershell
-# activate backend venv
 Set-Location backend\collegeEventsWeb
 & '.\.venv\Scripts\Activate.ps1'
-
-# run migrations
 & '.\.venv\Scripts\python.exe' manage.py migrate --noinput
-
-# create admin (interactive)
 & '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
+Set-Location ..\..\frontend
+npm install
+npm run dev
+```
 
-# start frontend (in a separate terminal)
-Set-Location frontend
+macOS/Linux (bash):
+```bash
+cd backend/collegeEventsWeb
+source .venv/bin/activate
+python manage.py migrate --noinput
+python manage.py createsuperuser --email you@example.com
+cd ../../frontend
 npm install
 npm run dev
 ```
