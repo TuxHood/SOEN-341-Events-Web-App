@@ -20,8 +20,18 @@ export function AuthProvider({ children }) {
      try {
        const token = getAccessToken();
        if (token) {
-         const me = await getProfile();
-         if (!cancelled) setUser(me ?? { email: localStorage.getItem("email") || "" });
+          const me = await getProfile();
+          // If profile loaded successfully, use it. If getProfile returned null
+          // that indicates the token is invalid/expired (401). In that case
+          // clear stored tokens and treat user as signed out so the UI shows
+          // Sign in / Sign up instead of a stale placeholder.
+          if (me) {
+            if (!cancelled) setUser(me);
+          } else {
+            // token invalid/expired → clear local storage and show signed-out UI
+            try { apiLogout(); } catch (e) {}
+            if (!cancelled) setUser(null);
+          }
           // schedule proactive refresh based on token expiry
           try {
             scheduleRefreshFromToken(token);
@@ -30,8 +40,9 @@ export function AuthProvider({ children }) {
           }
        }
      } catch {
-       // Don't nuke tokens on transient errors; keep a minimal user
-        if (!cancelled) setUser({ email: localStorage.getItem("email") || "" });
+        // On other transient errors we'll treat the user as signed-out to
+        // avoid showing stale placeholder accounts in the header.
+        if (!cancelled) setUser(null);
      } finally {
        if (!cancelled) setReady(true);
      }
@@ -132,6 +143,14 @@ export function AuthProvider({ children }) {
   clearRefreshTimer();
   setUser(null);
  }
+
+  // Listen for global logout events (used by top-level nav) so other parts
+  // of the app can trigger logout without direct prop threading.
+  useEffect(() => {
+    const handler = () => logout();
+  window.addEventListener('auth:logout', handler);
+  return () => window.removeEventListener('auth:logout', handler);
+  }, []);
 
 
  const value = useMemo(() => ({
