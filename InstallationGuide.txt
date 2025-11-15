@@ -126,19 +126,24 @@ Quick notes
 
 3) Frontend quickstart (Vite + React)
 
-Open a second terminal (repo root) and run:
+Open a second terminal (repo root) and run the frontend dev server. You can either use the helper scripts (recommended) which auto-install a few runtime packages, or run npm directly.
 
-Windows (PowerShell):
+Windows (PowerShell) — recommended (uses helper script):
 ```powershell
-cd frontend
-npm install   # first run only
-npm run dev
+# from repo root
+./scripts/start-frontend.ps1
 ```
 
-macOS/Linux (bash):
+macOS/Linux (bash) — recommended (uses helper script):
+```bash
+# from repo root
+./scripts/start-frontend.sh
+```
+
+Manual (npm) — first time only:
 ```bash
 cd frontend
-npm install   # first run only
+npm install
 npm run dev
 ```
 
@@ -146,19 +151,30 @@ Vite runs at http://localhost:5173 by default (may use 5174 if 5173 is busy). Th
 
 4) Helper scripts (recommended)
 
-Use helper scripts to simplify common tasks (auto env setup, deps, migrations):
+The repository includes small helper scripts that automate common developer tasks such as installing deps and starting dev servers. They also take care of a few runtime packages that the app expects (for example: `recharts`, `axios`, and `jsqr`) so you get a consistent environment across machines.
 
 Windows (PowerShell):
 ```powershell
+# backend (one terminal)
 ./scripts/start-backend.ps1
-./scripts/start-frontend.ps1  # second terminal
+
+# frontend (open a second terminal)
+./scripts/start-frontend.ps1
 ```
 
 macOS/Linux (bash):
 ```bash
+# backend (one terminal)
 ./scripts/start-backend.sh
-./scripts/start-frontend.sh  # second terminal
+
+# frontend (open a second terminal)
+./scripts/start-frontend.sh
 ```
+
+Notes about the frontend helper scripts:
+- They use `npm --prefix <frontend>` so installs and dev starts are executed from the `frontend` folder even when you run the script from the repo root.
+- On first run they will run `npm install` if `node_modules` is missing.
+- They will also ensure `recharts`, `axios`, and `jsqr` are installed (common runtime deps used by the UI). This prevents Vite import errors when certain optional packages are not yet present.
 
 5) Admin account patterns (safe)
 

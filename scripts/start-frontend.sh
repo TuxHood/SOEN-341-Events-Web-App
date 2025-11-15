@@ -13,21 +13,26 @@ fi
 FRONTEND_PATH="${PROJECT_ROOT}/frontend"
 cd "${FRONTEND_PATH}"
 
-if [[ ! -d node_modules ]]; then
-  echo "Installing frontend dependencies (npm install)..."
-  npm install
+if [[ ! -d "${FRONTEND_PATH}/node_modules" ]]; then
+  echo "Installing frontend dependencies (npm --prefix ${FRONTEND_PATH} install)..."
+  npm --prefix "${FRONTEND_PATH}" install
 fi
 
-# Ensure critical packages are present
-if [[ ! -d "node_modules/recharts" ]]; then
+# Ensure critical packages are present (recharts, axios, jsqr)
+if [[ ! -d "${FRONTEND_PATH}/node_modules/recharts" ]]; then
   echo "Detected missing package 'recharts' - installing..."
-  npm install recharts --save
+  npm --prefix "${FRONTEND_PATH}" install recharts --save
 fi
 
-if [[ ! -d "node_modules/axios" ]]; then
+if [[ ! -d "${FRONTEND_PATH}/node_modules/axios" ]]; then
   echo "Detected missing package 'axios' - installing..."
-  npm install axios --save
+  npm --prefix "${FRONTEND_PATH}" install axios --save
 fi
 
-echo "Starting Vite dev server"
-exec npm run dev
+if [[ ! -d "${FRONTEND_PATH}/node_modules/jsqr" ]]; then
+  echo "Detected missing package 'jsqr' - installing..."
+  npm --prefix "${FRONTEND_PATH}" install jsqr --save
+fi
+
+echo "Starting Vite dev server (npm --prefix ${FRONTEND_PATH} run dev)"
+exec npm --prefix "${FRONTEND_PATH}" run dev
