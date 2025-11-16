@@ -32,6 +32,7 @@ class EventSerializer(serializers.ModelSerializer):
             "id",
             "organizer",
             "is_approved",
+            "rejection_reason",
             "title",
             "description",
             "start_time",   
