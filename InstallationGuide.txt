@@ -1,10 +1,10 @@
-Quickstart — React (Vite) + Django REST
+Quickstart (simplified) — React (Vite) + Django REST
 
-This guide gets a teammate from a fresh clone to a running local dev environment (backend + frontend) on Windows (PowerShell) or macOS/Linux (bash). It focuses on copy‑pasteable commands and common tasks.
+This short guide gets you from a fresh clone to a running local dev environment (backend + frontend) and
+shows how to generate sample data and run the test suite — both manually and with helper scripts.
 
 Prerequisites
 - Node.js (LTS), Python 3.11+ (3.12 recommended), Git
-- Optional: PostgreSQL (project defaults to SQLite for local dev)
 
 1) Clone and open the repo
 
@@ -14,319 +14,189 @@ cd SOEN-341-Events-Web-App
 code .
 ```
 
-2) Backend quickstart (Django)
+1) Backend quick setup (one-time)
 
-Follow these steps from the repo root. If you prefer automation, use the helper scripts:
-- Windows: `scripts\start-backend.ps1`
-- macOS/Linux: `scripts/start-backend.sh`
-
-- Create and activate a venv (one-time per machine):
+From the repository root, run these commands.
 
 Windows (PowerShell):
 ```powershell
 cd backend\collegeEventsWeb
-python -m venv .venv  # create venv if missing
- .\.venv\Scripts\Activate.ps1
-```
-
-macOS/Linux (bash):
-```bash
-cd backend/collegeEventsWeb
-python3 -m venv .venv  # create venv if missing
-source .venv/bin/activate
-```
-
-- Install dependencies:
-
-Windows (PowerShell):
-```powershell
-& '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
-if (Test-Path requirements.txt) {
-  & '.\.venv\Scripts\pip.exe' install -r requirements.txt
-} else {
-  & '.\.venv\Scripts\pip.exe' install django==5.2.7 djangorestframework django-cors-headers djangorestframework-simplejwt python-dotenv
-}
-```
-
-macOS/Linux (bash):
-```bash
+python -m venv .venv          # create venv if missing
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip setuptools wheel
-if [ -f requirements.txt ]; then
-  pip install -r requirements.txt
-else
-  pip install django==5.2.7 djangorestframework django-cors-headers djangorestframework-simplejwt python-dotenv
-fi
-```
-
-Apply migrations and create an admin (interactive):
-
-Windows (PowerShell):
-```powershell
-& '.\.venv\Scripts\python.exe' manage.py migrate --noinput
-& '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
-```
-
-macOS/Linux (bash):
-```bash
+pip install -r requirements.txt
 python manage.py migrate --noinput
 python manage.py createsuperuser --email you@example.com
 ```
 
-Optional — only if you changed models locally and need new migrations:
-
-Windows (PowerShell):
-```powershell
-& '.\.venv\Scripts\python.exe' manage.py makemigrations --check --dry-run
-& '.\.venv\Scripts\python.exe' manage.py makemigrations  # run if previous exits with code 1
-```
-
-macOS/Linux (bash):
+macOS / Linux (bash):
 ```bash
-python manage.py makemigrations --check --dry-run || python manage.py makemigrations
+cd backend/collegeEventsWeb
+python3 -m venv .venv        # create venv if missing
+source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+python manage.py migrate --noinput
+python manage.py createsuperuser --email you@example.com
 ```
 
-Start the dev server:
-
-Windows (PowerShell):
-```powershell
-& '.\.venv\Scripts\python.exe' manage.py runserver 8000
-```
-
-macOS/Linux (bash):
+Start the backend (from `backend/collegeEventsWeb`):
 ```bash
 python manage.py runserver 8000
 ```
 
-If you encounter migration errors (for example: "no such column: \"start_at\"" or attempts to drop a column that doesn't exist), it's often because your local SQLite file and the migration files have diverged. On a local dev machine one safe option is to remove the local SQLite DB and re-run migrations from scratch. WARNING: this deletes local data.
+2) Frontend quick setup
 
-PowerShell one-liner (destructive; local dev only):
+Open a second terminal (repo root) and run the frontend dev server.
 
+Recommended (helper script):
+PowerShell:
 ```powershell
-Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force -ErrorAction SilentlyContinue; Set-Location backend\collegeEventsWeb; & '.\.venv\Scripts\Activate.ps1'; & '.\.venv\Scripts\python.exe' manage.py migrate --noinput; & '.\.venv\Scripts\python.exe' manage.py createsuperuser
+.\scripts\start-frontend.ps1
 ```
-
-Or run the same steps separately for clarity:
-
-```powershell
-# delete local sqlite DB
-Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force
-
-# go to project and activate venv
-Set-Location backend\collegeEventsWeb
-& '.\.venv\Scripts\Activate.ps1'
-
-# recreate DB schema and optionally create a superuser
-& '.\.venv\Scripts\python.exe' manage.py migrate --noinput
-& '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
-```
-
-Quick notes
-- Admin UI: http://127.0.0.1:8000/admin/
-- API roots: /api/events/, /api/users/, /api/tickets/
-
-3) Frontend quickstart (Vite + React)
-
-Open a second terminal (repo root) and run the frontend dev server. You can either use the helper scripts (recommended) which auto-install a few runtime packages, or run npm directly.
-
-Windows (PowerShell) — recommended (uses helper script):
-```powershell
-# from repo root
-./scripts/start-frontend.ps1
-```
-
-macOS/Linux (bash) — recommended (uses helper script):
+bash:
 ```bash
-# from repo root
 ./scripts/start-frontend.sh
 ```
 
-Manual (npm) — first time only:
+Manual (first time only):
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Vite runs at http://localhost:5173 by default (may use 5174 if 5173 is busy). The frontend is configured to proxy `/api` → `http://localhost:8000`.
+Vite runs at `http://localhost:5173` and proxies `/api` → `http://localhost:8000` by default.
 
-4) Helper scripts (recommended)
+3) Generate sample data
 
-The repository includes small helper scripts that automate common developer tasks such as installing deps and starting dev servers. They also take care of a few runtime packages that the app expects (for example: `recharts`, `axios`, and `jsqr`) so you get a consistent environment across machines.
+You can populate the DB with venues, events, organizers, students and registrations either with the
+included script or manually via the Django shell.
 
-Windows (PowerShell):
+With the script (recommended):
+From the repo root (venv activated):
+
+PowerShell:
 ```powershell
-# backend (one terminal)
-./scripts/start-backend.ps1
-
-# frontend (open a second terminal)
-./scripts/start-frontend.ps1
+python .\scripts\generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
 ```
 
-macOS/Linux (bash):
+bash:
 ```bash
-# backend (one terminal)
-./scripts/start-backend.sh
-
-# frontend (open a second terminal)
-./scripts/start-frontend.sh
+python ./scripts/generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
 ```
 
-Notes about the frontend helper scripts:
-- They use `npm --prefix <frontend>` so installs and dev starts are executed from the `frontend` folder even when you run the script from the repo root.
-- On first run they will run `npm install` if `node_modules` is missing.
-- They will also ensure `recharts`, `axios`, and `jsqr` are installed (common runtime deps used by the UI). This prevents Vite import errors when certain optional packages are not yet present.
-
-5) Admin account patterns (safe)
-
-Interactive (recommended):
-
-```powershell
-# run from backend\collegeEventsWeb with the venv activated
-& '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
+Manual (Django shell):
+```bash
+cd backend/collegeEventsWeb
+# activate venv first
+source .venv/bin/activate   # or on Windows: .\.venv\Scripts\Activate.ps1
+python manage.py shell
+```
+Then run a short Python snippet at the prompt (example):
+```python
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+from event_management.models import Venue, Event
+User = get_user_model()
+# create a user, venue and event
+u = User.objects.create_user(email='student1@example.com', name='Student 1', password='password')
+v = Venue.objects.create(name='Dev Hall', address='100 Dev Ln', capacity=200)
+start = timezone.now() + timezone.timedelta(days=7)
+Event.objects.create(title='Dev Meetup', description='Sample', organization='Dev', category='General', start_time=start, end_time=start + timezone.timedelta(hours=2), is_approved=True)
 ```
 
-Non-interactive pattern (use env vars or a secret store; avoid hardcoding passwords):
+4) Run tests
 
-```powershell
-# set session vars (or read from secret manager)
-$env:NEW_ADMIN_EMAIL='admin@example.com'
-$env:NEW_ADMIN_NAME='Admin Name'
-$env:NEW_ADMIN_PASSWORD='S3cureP@ssw0rd'  # prefer Read-Host or secret store
+Manual (single module or all tests):
+From the repo root with the backend venv activated:
 
-cd backend\collegeEventsWeb
-.\.venv\Scripts\Activate.ps1
-& '.\.venv\Scripts\python.exe' - <<'PY'
-import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE','collegeEventsWeb.settings')
-import django; django.setup()
-from user_accounts.models import User
-email=os.environ.get('NEW_ADMIN_EMAIL')
-name=os.environ.get('NEW_ADMIN_NAME')
-password=os.environ.get('NEW_ADMIN_PASSWORD')
-if not User.objects.filter(email=email).exists():
-    User.objects.create_superuser(email=email, name=name, password=password)
-    print('Superuser created:', email)
-else:
-    u = User.objects.get(email=email)
-    u.set_password(password)
-    u.role = User.Role.ADMIN
-    u.status = User.Status.ACTIVE
-    u.is_staff = True
-    u.is_superuser = True
-    u.save()
-    print('User promoted to superuser (password updated):', email)
-PY
-```
-
-There is also a `create_admin.py` template in the repo root — do not commit secrets into it. Prefer environment variables or a secret manager.
-
-6) Discovering routes (list URL patterns)
-
-Option A — install `django-extensions` (dev only):
-
+PowerShell:
 ```powershell
 cd backend\collegeEventsWeb
 .\.venv\Scripts\Activate.ps1
-& '.\.venv\Scripts\pip.exe' install django-extensions
-# add 'django_extensions' to INSTALLED_APPS in settings.py (dev only)
-& '.\.venv\Scripts\python.exe' manage.py show_urls
+python manage.py test backend.tests.test_integration -v 2
+# or run entire test suite
+python manage.py test
 ```
 
-Option B — inline (no extra deps):
+bash:
+```bash
+cd backend/collegeEventsWeb
+source .venv/bin/activate
+python manage.py test backend.tests.test_integration -v 2
+# or run entire test suite
+python manage.py test
+```
 
+With helper scripts (recommended):
 ```powershell
+# PowerShell (from repo root)
+.\scripts\run-tests.ps1
+```
+```bash
+# bash
+./scripts/run-tests.sh
+```
+
+5) Troubleshooting notes
+- If migrations fail because your local sqlite DB is out-of-sync with migrations, you may delete the local DB and re-run migrations (dev-only, destructive):
+```powershell
+Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force
 cd backend\collegeEventsWeb
 .\.venv\Scripts\Activate.ps1
-& '.\.venv\Scripts\python.exe' - <<'PY'
-import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE','collegeEventsWeb.settings')
-import django; django.setup()
-from django.urls import get_resolver
-for p in get_resolver().url_patterns:
-    print(p)
-PY
+python manage.py migrate --noinput
+python manage.py createsuperuser
 ```
-
-7) How to call the API
-
-Use the browser (DRF browsable API), curl, or PowerShell's `Invoke-RestMethod` for quick checks:
-
-```powershell
-Invoke-RestMethod -Uri http://127.0.0.1:8000/api/events/ -Method GET
-```
-
-Login via API (example): POST to `/api/users/login` with JSON `{"email":"...","password":"..."}` — the backend returns tokens and sets an HttpOnly cookie as configured.
-
-8) Troubleshooting tips
-
-- If venv activation is blocked, allow it for your session:
-
+- If venv activation is blocked on Windows, allow it for the session:
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
 . .\.venv\Scripts\Activate.ps1
 ```
+- For CSRF issues from the SPA, prefer using Vite's proxy so API calls are same-origin. If you call the backend directly, ensure `CORS_ALLOW_CREDENTIALS = True` and adjust cookie SameSite settings in `settings.py` for local dev.
 
-- To recreate a broken venv:
+6) Helper scripts reference
+- `scripts/start-backend.ps1` / `scripts/start-backend.sh` — create/activate venv, install backend deps and run the Django dev server.
+- `scripts/start-frontend.ps1` / `scripts/start-frontend.sh` — ensure `node_modules`, install runtime packages and start Vite.
+- `scripts/run-tests.ps1` / `scripts/run-tests.sh` — run the integration tests (creates venv if needed, migrates, runs tests).
+- `scripts/generate_sample_data.py` — generates sample venues, events, organizers, students and registrations (run from repo root).
 
-```powershell
-Remove-Item -Recurse -Force .\.venv
-python -m venv .venv
-& '.\.venv\Scripts\python.exe' -m pip install --upgrade pip setuptools wheel
-& '.\.venv\Scripts\pip.exe' install -r requirements.txt
-```
-
-- CSRF cookie issues (common when frontend calls backend directly):
-  - Prefer using Vite's proxy (default) so the browser treats API requests as same-origin.
-  - If you call the backend directly on `http://localhost:8000`, ensure `CORS_ALLOW_CREDENTIALS = True` and set cookie SameSite/secure flags correctly in `settings.py` (dev-only changes may be needed).
-
-- If migrations fail because migrations and DB are out of sync, follow the "delete DB and recreate" steps above (dev-only, destructive) or fake-apply migrations if you need to preserve data.
-
-9) Improvements I can add (pick one)
-
-- Convert `create_admin.py` into a management command: `manage.py create_admin --email ...` (recommended)
-- Add DRF OpenAPI + docs endpoints (`/openapi/`, `/docs/`)
-- Add a management command to print friendly routes
-
-If you'd like, tell me which improvement to implement and I will make the change and verify it locally.
+Convert sample-data to management command?
+If you prefer `python manage.py generate_sample_data`, I can convert `scripts/generate_sample_data.py` into a Django management command. Tell me if you'd like that.
 
 --
 
-Quicker commands reference
+Concise quick commands
 
-Windows (PowerShell):
+PowerShell (repo root):
 ```powershell
-Set-Location backend\collegeEventsWeb
-& '.\.venv\Scripts\Activate.ps1'
-& '.\.venv\Scripts\python.exe' manage.py migrate --noinput
-& '.\.venv\Scripts\python.exe' manage.py createsuperuser --email you@example.com
-Set-Location ..\..\frontend
-npm install
-npm run dev
+# start backend
+.\scripts\start-backend.ps1
+
+# start frontend (new terminal)
+.\scripts\start-frontend.ps1
+
+# generate sample data
+python .\scripts\generate_sample_data.py
+
+# run tests
+.\scripts\run-tests.ps1
 ```
 
-macOS/Linux (bash):
+Bash (repo root):
 ```bash
-cd backend/collegeEventsWeb
-source .venv/bin/activate
-python manage.py migrate --noinput
-python manage.py createsuperuser --email you@example.com
-cd ../../frontend
-npm install
-npm run dev
+# start backend
+./scripts/start-backend.sh
+
+# start frontend (new terminal)
+./scripts/start-frontend.sh
+
+# generate sample data
+python ./scripts/generate_sample_data.py
+
+# run tests
+./scripts/run-tests.sh
 ```
 
-# Omit --password to be prompted securely.
-```
-
-2) Wrapper (prompts securely)
-```powershell
-# from repo root
-.\scripts\create-admin.ps1
-```
-
-Note: this repository contains multiple Django project folders in history. The canonical dev project is
-`backend/collegeEventsWeb` — all `manage.py` commands shown in this guide assume you are in that directory
-or explicitly call that `manage.py`. If you see an older `manage.py` under `backend/`, it is legacy and may be
-archived or removed to avoid confusion.
 
 
