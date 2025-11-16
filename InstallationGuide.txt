@@ -186,15 +186,19 @@ python .\scripts\generate_sample_data.py
 Bash (repo root):
 ```bash
 # start backend
+chmod +x ./scripts/start-backend.sh    #if "permission denied"
 ./scripts/start-backend.sh
 
 # start frontend (new terminal)
+chmod +x ./scripts/start-frontend.sh.   #if "permission denied"
 ./scripts/start-frontend.sh
 
 # generate sample data
+source backend/collegeEventsWeb/.venv/bin/activate
 python ./scripts/generate_sample_data.py
 
 # run tests
+chmod +x ./scripts/run-tests.sh  #if "permission denied"
 ./scripts/run-tests.sh
 ```
 
