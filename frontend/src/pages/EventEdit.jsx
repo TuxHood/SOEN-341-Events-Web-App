@@ -30,11 +30,15 @@ export default function EventEdit(){
 		description: '',
 		organization: '',
 		category: '',
+		venue: '',
 		start_time: '',
 		end_time: '',
 		image_url: '',
 		price_cents: 0,
 	})
+
+	const [venues, setVenues] = React.useState([])
+	const [venuesLoading, setVenuesLoading] = React.useState(true)
 
 	React.useEffect(()=>{
 		let alive = true
@@ -57,6 +61,7 @@ export default function EventEdit(){
 					description: data.description || '',
 					organization: data.organization || '',
 					category: data.category || '',
+					venue: data.venue || '',
 					start_time: toLocalInput(data.start_time),
 					end_time: toLocalInput(data.end_time),
 					image_url: data.image_url || '',
@@ -67,6 +72,31 @@ export default function EventEdit(){
 		})()
 		return ()=>{ alive = false }
 	}, [eventId])
+
+	// Load admin-created venues so organizers can only select existing venues
+	React.useEffect(() => {
+		let alive = true
+		;(async () => {
+			setVenuesLoading(true)
+			try {
+				const res = await fetch(`${BASE}/venues/`)
+				if (!alive) return
+				if (res.ok) {
+					const j = await res.json()
+					const data = Array.isArray(j) ? j : (j && j.results) ? j.results : []
+					setVenues(data || [])
+				} else {
+					setVenues([])
+				}
+			} catch (e) {
+				console.warn('Failed to load venues', e)
+				setVenues([])
+			} finally {
+				if (alive) setVenuesLoading(false)
+			}
+		})()
+		return () => { alive = false }
+	}, [])
 
 	const onChange = (e) => {
 		const { name, value } = e.target
@@ -83,6 +113,7 @@ export default function EventEdit(){
 				description: form.description,
 				organization: form.organization,
 				category: form.category,
+				venue: form.venue,
 				start_time: form.start_time, // send as ISO-like string; DRF parses 'YYYY-MM-DDTHH:mm'
 				end_time: form.end_time,
 				image_url: form.image_url,
@@ -171,6 +202,20 @@ export default function EventEdit(){
 							<div>
 								<label className={labelClass}>Category</label>
 								<input name="category" value={form.category} onChange={onChange} className={inputClass} placeholder="e.g. Tech, Sports, Arts" />
+							</div>
+
+							<div>
+								<label className={labelClass}>Venue</label>
+								{venuesLoading ? (
+									<select disabled className={inputClass}><option>Loading venues…</option></select>
+								) : (
+									<select name="venue" value={form.venue} onChange={onChange} className={inputClass}>
+										<option value="">Select a venue</option>
+										{venues.map(v => (
+											<option key={v.id ?? v.name} value={String(v.id ?? v.name)}>{v.name ?? v.location ?? v.id}</option>
+										))}
+									</select>
+								)}
 							</div>
 						</div>
 

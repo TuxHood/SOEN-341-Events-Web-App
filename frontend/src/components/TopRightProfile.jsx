@@ -13,8 +13,10 @@ export default function TopRightProfile() {
   const menuRef = useRef(null);
   const btnRef = useRef(null);
 
-  // token presence = logged in
-  const hasToken = !!getAccessToken();
+  // Prefer the auth provider's user state so expired tokens don't display a
+  // stale placeholder. If the provider indicates there's no user, show
+  // explicit Sign in / Sign up buttons.
+  const user = ctx?.user ?? null;
 
   // Close on outside click
   useEffect(() => {
@@ -29,15 +31,23 @@ export default function TopRightProfile() {
   }, []);
   useEffect(() => setOpen(false), [pathname]);
 
-  // Not logged in -> show login/sign up
-  if (!hasToken) {
-   return (
-     <div style={{ display: "flex", gap: 8 }}>
-       <Link to="/auth/login">Log In</Link>
-       <Link to="/auth/sign-up">Sign Up</Link>
-     </div>
-   );
- }
+  // Not logged in -> show prominent login and register buttons
+  if (!user) {
+    const btn = {
+      padding: '8px 12px',
+      borderRadius: 6,
+      border: '1px solid rgba(0,0,0,0.08)',
+      background: 'transparent',
+      cursor: 'pointer',
+      fontWeight: 600,
+    };
+    return (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <Link to="/auth/login"><button style={btn}>Sign in</button></Link>
+        <Link to="/auth/sign-up"><button style={{ ...btn, background: '#7f1d1d', color: 'white', border: '1px solid #7f1d1d' }}>Register</button></Link>
+      </div>
+    );
+  }
 
   // Derive friendly name/role without hitting the backend
   const email = ctx?.user?.email || localStorage.getItem("email") || "";

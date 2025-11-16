@@ -19,7 +19,20 @@ export async function fetchEvents({ baseUrl, token, date, from, to } = {}) {
   const headers = { "Accept": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(url.toString(), { credentials: 'include', headers });
+  // If a token is provided but invalid/expired the backend may return 401.
+  // In that case we fall back to an unauthenticated request so public event
+  // discovery still works for visitors with expired tokens in localStorage.
+  let res = await fetch(url.toString(), { credentials: 'include', headers });
+  if (res.status === 401 && token) {
+    // The 401 may be caused by an expired access token sent via Authorization
+    // header or via an httponly cookie the server copies into the header.
+    // Retry once WITHOUT sending cookies so the request is truly unauthenticated
+    // and the public events list can be returned.
+    const unauthHeaders = { Accept: 'application/json' };
+    const retry = await fetch(url.toString(), { credentials: 'omit', headers: unauthHeaders });
+    if (!retry.ok) throw new Error(await retry.text());
+    return retry.json();
+  }
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

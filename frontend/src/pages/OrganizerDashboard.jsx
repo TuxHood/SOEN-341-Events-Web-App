@@ -3,13 +3,19 @@ import { Link } from 'react-router-dom';
 import api from '../api/apiClient';
 import { useAuth } from '../components/AuthProvider';
 
+// Note: organizers must choose from admin-created venues. We fetch the
+// list of venues and present it as a select dropdown. Organizers cannot
+// create new venues from this UI.
+
 export default function OrganizerDashboard() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user, ready } = useAuth();
   const [creating, setCreating] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: '', description: '', start_time: '', end_time: '', organization: '', category: '' });
+  const [newEvent, setNewEvent] = useState({ title: '', description: '', start_time: '', end_time: '', organization: '', category: '', venue: '' });
+  const [venues, setVenues] = useState([]);
+  const [venuesLoading, setVenuesLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,6 +40,30 @@ export default function OrganizerDashboard() {
     return () => { cancelled = true; };
   }, [ready]);
 
+  // Load admin-created venues (read-only for organizers)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setVenuesLoading(true);
+      try {
+        const res = await api.get('/venues/');
+        if (!cancelled) {
+          // Support both array response and paginated { results: [...] }
+          const data = Array.isArray(res.data) ? res.data : (res.data && res.data.results) ? res.data.results : [];
+          setVenues(data || []);
+          // if there's at least one venue and the form has no selection, preselect the first
+          if (!newEvent.venue && data && data.length) setNewEvent(s => ({ ...s, venue: String(data[0].id ?? data[0].name) }));
+        }
+      } catch (e) {
+        console.warn('Failed to load venues for organizer:', e?.response?.data || e.message || e);
+        if (!cancelled) setVenues([]);
+      } finally {
+        if (!cancelled) setVenuesLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   async function handleCreate(ev) {
     ev.preventDefault();
     setCreating(true);
@@ -46,14 +76,15 @@ export default function OrganizerDashboard() {
         start_time: newEvent.start_time,
         end_time: newEvent.end_time,
         organization: newEvent.organization || 'Organizer',
-        category: newEvent.category || 'General'
+        category: newEvent.category || 'General',
+        venue: newEvent.venue || ''
       };
       await api.post('/events/', payload);
       // reload events
       const res = await api.get('/events/', { params: { organizer: 'me' } });
       setEvents(res.data || []);
       // reset form
-      setNewEvent({ title: '', description: '', start_time: '', end_time: '', organization: '', category: '' });
+      setNewEvent({ title: '', description: '', start_time: '', end_time: '', organization: '', category: '', venue: '' });
     } catch (e) {
       setError(e?.response?.data?.detail || e.message || 'Failed to create event');
     } finally {
@@ -117,6 +148,17 @@ export default function OrganizerDashboard() {
           <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <input required placeholder="Title" value={newEvent.title} onChange={e => setNewEvent(s => ({ ...s, title: e.target.value }))} className="p-2 border rounded" />
             <input required placeholder="Organization" value={newEvent.organization} onChange={e => setNewEvent(s => ({ ...s, organization: e.target.value }))} className="p-2 border rounded" />
+            {/* Venue must be selected from admin-created venues */}
+            {venuesLoading ? (
+              <select disabled className="p-2 border rounded"><option>Loading venues…</option></select>
+            ) : (
+              <select value={newEvent.venue} onChange={e => setNewEvent(s => ({ ...s, venue: e.target.value }))} className="p-2 border rounded" required>
+                <option value="">Select a venue</option>
+                {venues.map(v => (
+                  <option key={v.id ?? v.name} value={String(v.id ?? v.name)}>{v.name ?? v.location ?? v.id}</option>
+                ))}
+              </select>
+            )}
             <input required type="datetime-local" placeholder="Starts" value={newEvent.start_time} onChange={e => setNewEvent(s => ({ ...s, start_time: e.target.value }))} className="p-2 border rounded" />
             <input required type="datetime-local" placeholder="Ends" value={newEvent.end_time} onChange={e => setNewEvent(s => ({ ...s, end_time: e.target.value }))} className="p-2 border rounded" />
             <input placeholder="Category" value={newEvent.category} onChange={e => setNewEvent(s => ({ ...s, category: e.target.value }))} className="p-2 border rounded" />

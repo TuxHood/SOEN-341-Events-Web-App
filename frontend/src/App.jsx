@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-do
 import { useAuth } from "./components/AuthProvider";
 import "./App.css";
 
-import Home from "./pages/Home";
+// Home page removed as default — EventDiscovery is now the app root
 import EventDetail from "./pages/EventDetail";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -34,60 +34,19 @@ function AppShell() {
   const isAdmin = Boolean(user && (user.role === 'admin' || user.is_staff));
   const isOrganizer = Boolean(user && (user.role === 'organizer' || isAdmin));
 
-  // Hide nav on auth pages
-  const hideNav = ["/auth/login", "/auth/sign-up"];
-  const showNav = !hideNav.includes(pathname);
-
   return (
     <>
-      {showNav && (
-        <nav style={{ padding: 10, borderBottom: "1px solid #ddd", textAlign: "center" }}>
-          {/* Primary nav:
-              - Admin: show Dashboard -> /admin
-              - Regular users (non-organizer): show Home -> /
-              - Organizer (non-admin): hide Home per request */}
-          {isAdmin ? (
-            <Link
-              to="/admin"
-              style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}
-            >
-              Dashboard
-            </Link>
-          ) : (!isOrganizer && (
-            <Link
-              to="/"
-              style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}
-            >
-              Home
-            </Link>
-          ))}
-
-          {/* Organizer link visible for organizers only (not admins) */}
-          {!isAdmin && isOrganizer && (
-            <Link to="/organizer" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-              Organizer
-            </Link>
-          )}
-
-          {/* Admin-specific top menu items intentionally removed per request */}
-
-          <Link to="/auth/login" style={{ margin: "0 12px", textDecoration: "none", color: "var(--foreground)", fontWeight: 600 }}>
-            Login
-          </Link>
-        </nav>
-      )}
-
       <Routes>
-    {/* Public */}
-        <Route path="/" element={<Home />} />
-        <Route path="/events/:eventId" element={<EventDetail />} />
+    {/* Public: root defaults to event discovery */}
+        <Route path="/" element={<EventDiscovery />} />
+  <Route path="/events/:eventId" element={<EventDetail />} />
+  <Route path="/events" element={<EventDiscovery />} />
     {/* Auth pages */}
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/sign-up" element={<SignUpPage />} />
 
         {/* Protected group */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/events" element={<EventDiscovery />} />
           <Route path="/me/tickets" element={<MyTickets />} />
           <Route path="/tickets/:tid/qr" element={<TicketQR />} />
         </Route>
@@ -111,8 +70,7 @@ function AppShell() {
           <Route path="/admin/approvals" element={<AdminApprovals />} />
         </Route>
 
-  {/* Keep events discovery accessible */}
-  <Route path="/events" element={<EventDiscovery />} />
+  {/* (events route already available under protected routes) */}
       </Routes>
     </>
   );
