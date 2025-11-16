@@ -84,7 +84,7 @@ export default function OrganizerDashboard() {
       const res = await api.get('/events/', { params: { organizer: 'me' } });
       setEvents(res.data || []);
       // reset form
-  setNewEvent({ title: '', description: '', start_time: '', end_time: '', organization: '', category: '', venue: '' });
+      setNewEvent({ title: '', description: '', start_time: '', end_time: '', organization: '', category: '', venue: '' });
     } catch (e) {
       setError(e?.response?.data?.detail || e.message || 'Failed to create event');
     } finally {
