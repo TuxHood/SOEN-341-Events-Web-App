@@ -104,9 +104,38 @@ export async function getProfile() {
 }
 
 export function logout() {
-  localStorage.removeItem("access");
-  localStorage.removeItem("refresh");
-  localStorage.removeItem("email");
+  // Call backend logout to remove the httponly access_token cookie, then
+  // clear client-side tokens. This is best-effort: if the POST fails we
+  // still clear local storage so the UI returns to signed-out state.
+  (async () => {
+    try {
+      // Helper to read csrftoken cookie if present
+      function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : null;
+      }
+      let csrftoken = getCookie('csrftoken');
+      const headers = {};
+      if (!csrftoken) {
+        // Ensure csrftoken cookie exists (dev helper) before POSTing
+        try {
+          await fetch(`${API_ROOT}/users/csrf/`, { method: 'GET', credentials: 'include' });
+          csrftoken = getCookie('csrftoken');
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (csrftoken) headers['X-CSRFToken'] = csrftoken;
+      // Note: logout endpoint lives under /users/ (e.g. /api/users/logout/)
+      await fetch(`${API_ROOT}/users/logout/`, { method: 'POST', credentials: 'include', headers });
+    } catch (e) {
+      // ignore errors — we'll still clear local data
+    } finally {
+      try { localStorage.removeItem("access"); } catch(_){}
+      try { localStorage.removeItem("refresh"); } catch(_){}
+      try { localStorage.removeItem("email"); } catch(_){}
+    }
+  })();
 }
 
 export function getAccessToken() {

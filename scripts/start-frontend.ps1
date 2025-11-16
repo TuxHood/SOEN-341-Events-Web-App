@@ -31,6 +31,13 @@ if (-Not (Test-Path -Path $axiosPkgPath)) {
     npm --prefix "$frontendPath" install axios --save
 }
 
+# Ensure jsqr (QR decoding) is present — some pages import 'jsqr' directly
+$jsqrPkgPath = Join-Path $frontendPath 'node_modules\jsqr'
+if (-Not (Test-Path -Path $jsqrPkgPath)) {
+    Write-Host "Detected missing package 'jsqr' - installing (npm --prefix $frontendPath install jsqr)..."
+    npm --prefix "$frontendPath" install jsqr --save
+}
+
 Write-Host "Starting Vite dev server (using npm --prefix $frontendPath run dev)"
 $npmExe = 'npm.cmd'
 try {

@@ -116,7 +116,10 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # Allow anyone to call logout so we can clear the httponly access_token
+    # cookie even when the token has expired. This avoids leaving clients in
+    # a stale-auth state where the cookie continues to be sent by the browser.
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         resp = Response({"detail": "Logged out."}, status=status.HTTP_200_OK)

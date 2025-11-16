@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import "./EventDiscovery.css";
 import TopRightProfile from "../components/TopRightProfile";
 import { fetchEvents } from "../api/events";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "../components/AuthProvider";
+import { useNavigate, Link } from "react-router-dom";
 import { getAccessToken } from "../api/auth.js";
 
 
@@ -206,23 +207,20 @@ const formattedToday = displayDate.toLocaleDateString("en-CA", {
  }, [selectedDateRaw]);
 
 
- const EventModal = ({ event, onClose }) => {
- const navigate = useNavigate();
+const EventModal = ({ event, onClose }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
+  function handleBuy() {
+    navigate(`/events/${event.id}/buy`);
+  }
 
- function handleBuy() {
-   navigate(`/events/${event.id}/buy`);
- }
+  if (!event) return null;
 
-
- if (!event) return null;
-
-
- return (
-   <div className="modal-overlay" onClick={onClose}>
-     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-       <h2>{event.title}</h2>
-
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <h2>{event.title}</h2>
 
         <p><strong>Date:</strong> {event.dateLabel}</p>
         <p><strong>Time:</strong> {event.timeLabel || "TBA"}</p>
@@ -237,20 +235,26 @@ const formattedToday = displayDate.toLocaleDateString("en-CA", {
           </>
         )}
 
-
-       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-         {event.is_approved === false ? (
-           <div style={{ color: '#92400e', background: '#fff7ed', padding: 8, borderRadius: 6 }}>This event is pending approval and is not open for registration.</div>
-         ) : (
-           <button className="claim-btn" onClick={handleBuy}>
-             Buy Ticket
-           </button>
-         )}
-         <button className="close-btn" onClick={onClose}>Close</button>
-       </div>
-     </div>
-   </div>
- );
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          {event.is_approved === false ? (
+            <div style={{ color: '#92400e', background: '#fff7ed', padding: 8, borderRadius: 6 }}>This event is pending approval and is not open for registration.</div>
+          ) : (
+            user ? (
+              <button className="claim-btn" onClick={handleBuy}>
+                Buy Ticket
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Link to="/auth/login"><button style={{ padding: '8px 12px', borderRadius: 6, fontWeight: 600 }}>Sign in</button></Link>
+                <Link to="/auth/sign-up"><button style={{ padding: '8px 12px', borderRadius: 6, background: '#7f1d1d', color: '#fff', border: '1px solid #7f1d1d', fontWeight: 600 }}>Register</button></Link>
+              </div>
+            )
+          )}
+          <button className="close-btn" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 
