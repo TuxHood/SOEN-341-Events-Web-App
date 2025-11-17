@@ -321,14 +321,21 @@ export default function MyTicketsPage() {
             <button className="btn" type="button" onClick={() => setSelected(null)} disabled={actBusy}>
               Close
             </button>
-            <button
-                className="btn"
-                type="button"
-                onClick={() => downloadICS(selected?.event || {})}
-                disabled={actBusy}
+            {selected?.event?.google_calendar_url && (
+              <a
+                href={selected.event.google_calendar_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <button
+                  className="btn"
+                  type="button"
+                  disabled={actBusy}
                 >
-                Add to calendar
+                  Add to Google Calendar
                 </button>
+              </a>
+            )}
             <button
               className="btn danger"
               type="button"
