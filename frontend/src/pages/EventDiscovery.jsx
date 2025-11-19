@@ -84,6 +84,7 @@ useEffect(() => {
           startMs: start ? start.getTime() : null,
           endMs: end ? end.getTime() : null,
           is_approved: e.is_approved,
+          googleCalendarUrl: e.google_calendar_url,
         };
       });
       setEvents(shaped);
@@ -235,23 +236,44 @@ const EventModal = ({ event, onClose }) => {
           </>
         )}
 
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <div className="modal-actions" style={{ display: "flex", gap: 8, marginTop: 16 }}>
           {event.is_approved === false ? (
-            <div style={{ color: '#92400e', background: '#fff7ed', padding: 8, borderRadius: 6 }}>This event is pending approval and is not open for registration.</div>
+            <div style={{ color: '#92400e', background: '#fff7ed', padding: 8, borderRadius: 6 }}>
+              This event is pending approval and is not open for registration.
+            </div>
           ) : (
             user ? (
               <button className="claim-btn" onClick={handleBuy}>
                 Buy Ticket
               </button>
             ) : (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Link to="/auth/login"><button style={{ padding: '8px 12px', borderRadius: 6, fontWeight: 600 }}>Sign in</button></Link>
-                <Link to="/auth/sign-up"><button style={{ padding: '8px 12px', borderRadius: 6, background: '#7f1d1d', color: '#fff', border: '1px solid #7f1d1d', fontWeight: 600 }}>Register</button></Link>
-              </div>
+              <>
+                <Link to="/auth/login">
+                  <button className="modal-btn secondary">Sign in</button>
+                </Link>
+                <Link to="/auth/sign-up">
+                  <button className="modal-btn primary">Register</button>
+                </Link>
+              </>
             )
           )}
-          <button className="close-btn" onClick={onClose}>Close</button>
+
+          {event.googleCalendarUrl && (
+            <a
+              href={event.googleCalendarUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: "none" }}
+            >
+              <button className="modal-btn primary">
+                Add to Google Calendar
+              </button>
+            </a>
+          )}
+
+          <button className="modal-btn danger" onClick={onClose}>Close</button>
         </div>
+
       </div>
     </div>
   );
