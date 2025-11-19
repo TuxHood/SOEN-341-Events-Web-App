@@ -34,6 +34,7 @@ class Event(models.Model):
     # Admin approval flag: new events created by organizers are set False and
     # require admin approval before being visible in public listings.
     is_approved = models.BooleanField(default=True)
+    rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     # Optional organizer FK: some forks of this project include it, add as nullable for compatibility
     organizer = models.ForeignKey(

@@ -67,3 +67,11 @@ export async function deleteEvent(id) {
   const res = await apiClient.delete(`/events/${id}/`);
   return res.data;
 }
+
+// Reject event by updating is_approved + setting rejection_reason
+export async function rejectEvent(id, rejectionReason) {
+  return updateEvent(id, {
+    is_approved: false,
+    rejection_reason: rejectionReason,
+  })
+}
