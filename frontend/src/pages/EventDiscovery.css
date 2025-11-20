@@ -180,6 +180,15 @@
   position: relative;
 }
 
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;          /* allow wrap instead of overflowing */
+  justify-content: center;  /* center buttons under the modal */
+  gap: 8px;
+  margin-top: 16px;
+}
+
+
 .modal-content .claim-btn,
 .modal-content .close-btn {
   width: 120px;            /* make both buttons same width */
@@ -238,4 +247,43 @@
 .signup-btn {
   background-color: var(--concordia-maroon);
   color: white;
+}
+
+.modal-actions .modal-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;     
+  text-align: center;        
+}
+
+/* Variants */
+.modal-actions .modal-btn.primary {
+  background-color: #7f1d1d;  /* maroon */
+  color: #fff;
+}
+
+.modal-actions .modal-btn.primary:hover {
+  background-color: #5f1313;
+}
+
+.modal-actions .modal-btn.secondary {
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.modal-actions .modal-btn.secondary:hover {
+  background-color: #f3f4f6;
+}
+
+.modal-actions .modal-btn.danger {
+  background-color: #dc2626;  /* red */
+  color: #fff;
+}
+
+.modal-actions .modal-btn.danger:hover {
+  background-color: #b91c1c;
 }

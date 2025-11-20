@@ -1,10 +1,13 @@
 import os, qrcode
+import datetime
 from rest_framework import serializers
 from .models import Event, Category, Venue, Ticket
 from django.conf import settings
 #from collegeEventsWeb.ticket_services.models import Ticket
 from io import BytesIO
 from django.core.files.base import ContentFile
+from django.utils import timezone
+from urllib.parse import urlencode
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -25,6 +28,7 @@ class EventSerializer(serializers.ModelSerializer):
     tickets_issued = serializers.SerializerMethodField(read_only=True)
     tickets_checked_in = serializers.SerializerMethodField(read_only=True)
     tickets_pending = serializers.SerializerMethodField(read_only=True)
+    google_calendar_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Event
@@ -45,8 +49,9 @@ class EventSerializer(serializers.ModelSerializer):
             "tickets_pending",
             "category_name",
             "image_url",
+            "google_calendar_url",
         ]
-        read_only_fields = ["organizer", "organizer_name", "category_name", "image_url", "tickets_issued", "tickets_checked_in", "tickets_pending"]
+        read_only_fields = ["organizer", "organizer_name", "category_name", "image_url", "tickets_issued", "tickets_checked_in", "tickets_pending", "google_calendar_url"]
 
     # ---- helpers ----
     def get_organizer_name(self, obj):
@@ -105,6 +110,38 @@ class EventSerializer(serializers.ModelSerializer):
         #req = self.context.get("request")
         #return req.build_absolute_uri(url) if req else url
     
+    def get_google_calendar_url(self, obj):
+        # if times are missing, don't return a link
+        if not obj.start_time or not obj.end_time:
+            return None
+
+        start = obj.start_time
+        end = obj.end_time
+
+        # make sure they're timezone-aware, then convert to UTC
+        if timezone.is_naive(start):
+            start = timezone.make_aware(start, timezone.get_current_timezone())
+        if timezone.is_naive(end):
+            end = timezone.make_aware(end, timezone.get_current_timezone())
+
+        start_str = start.astimezone(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        end_str = end.astimezone(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+        # best-effort location (depends on how Event ↔ Venue is set up)
+        location = ""
+        venue = getattr(obj, "venue", None)
+        if venue:
+            location = getattr(venue, "name", "") or str(venue)
+
+        params = {
+            "action": "TEMPLATE",
+            "text": obj.title,
+            "details": obj.description or "",
+            "location": location,
+            "dates": f"{start_str}/{end_str}",
+        }
+
+        return "https://calendar.google.com/calendar/render?" + urlencode(params)
 
 class TicketSerializer(serializers.ModelSerializer):
     event = EventSerializer(read_only=True)
