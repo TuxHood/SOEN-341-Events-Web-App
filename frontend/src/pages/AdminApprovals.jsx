@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import apiClient from '../api/apiClient'
-import { updateEvent, deleteEvent } from '../api/events'
+import { updateEvent, deleteEvent, rejectEvent } from '../api/events'
 
 export default function AdminApprovals() {
   const [loading, setLoading] = useState(true)
@@ -10,18 +10,40 @@ export default function AdminApprovals() {
   const [venueForm, setVenueForm] = useState({ name: '', address: '', capacity: '' })
   const [venues, setVenues] = useState([])
 
+  // async function loadPending() {
+  //   setLoading(true)
+  //   setError(null)
+  //   try {
+  //     const res = await apiClient.get('/events/', { params: { is_approved: 'false' } })
+  //     setEvents(res.data || [])
+  //   } catch (e) {
+  //     setError(e?.response?.data?.detail || e.message || 'Failed to load')
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
   async function loadPending() {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await apiClient.get('/events/', { params: { is_approved: 'false' } })
-      setEvents(res.data || [])
-    } catch (e) {
-      setError(e?.response?.data?.detail || e.message || 'Failed to load')
-    } finally {
-      setLoading(false)
-    }
+  setLoading(true)
+  setError(null)
+
+  try {
+    const res = await apiClient.get('/events/', {
+      params: { is_approved: 'false' }
+    })
+
+    const allEvents = res.data || []
+
+    // Only keep unapproved events WITH NO rejection reason
+    const pending = allEvents.filter(ev => !ev.rejection_reason)
+
+    setEvents(pending)
+  } catch (e) {
+    setError(e?.response?.data?.detail || e.message || 'Failed to load')
+  } finally {
+    setLoading(false)
   }
+}
+
 
   async function loadVenues() {
     try {
@@ -44,15 +66,37 @@ export default function AdminApprovals() {
     }
   }
 
+  // async function handleReject(id) {
+  //   if (!confirm('Delete this pending event? This cannot be undone.')) return
+  //   try {
+  //     await deleteEvent(id)
+  //     await loadPending()
+  //   } catch (e) {
+  //     setError(e?.response?.data?.detail || e.message)
+  //   }
+  // }
   async function handleReject(id) {
-    if (!confirm('Delete this pending event? This cannot be undone.')) return
+    const reason = prompt('Please enter a reason for rejecting this event:')
+    if (reason === null) {
+      // Admin cancelled
+      return
+    }
+
+    const trimmed = reason.trim()
+    if (!trimmed) {
+      alert('A rejection reason is required.')
+      return
+    }
+
     try {
-      await deleteEvent(id)
+      await rejectEvent(id, trimmed)   // ✅ now calls PATCH /events/:id/
       await loadPending()
     } catch (e) {
       setError(e?.response?.data?.detail || e.message)
-    }
+      }
   }
+
+
 
   async function handleVenueSubmit(ev) {
     ev.preventDefault()

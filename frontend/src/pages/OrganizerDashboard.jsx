@@ -92,6 +92,69 @@ export default function OrganizerDashboard() {
     }
   }
 
+    function renderStatusBadge(event) {
+    // if backend didn't send is_approved, don't render anything
+    if (typeof event.is_approved === 'undefined') return null;
+
+    // Rejected: not approved AND has a rejection_reason
+    if (event.is_approved === false && event.rejection_reason) {
+      return (
+        <div style={{ marginBottom: '14px' }}>
+          <span
+            style={{
+              color: '#b91c1c',
+              background: '#fee2e2',
+              padding: '4px 8px',
+              borderRadius: 6,
+              fontSize: '13px',
+              fontWeight: 600,
+            }}
+          >
+            Rejected: {event.rejection_reason}
+          </span>
+        </div>
+      );
+    }
+
+    // Approved
+    if (event.is_approved) {
+      return (
+        <div style={{ marginBottom: '14px' }}>
+          <span
+            style={{
+              color: '#065f46',
+              background: '#ecfdf5',
+              padding: '4px 8px',
+              borderRadius: 6,
+              fontSize: '13px',
+              fontWeight: 600,
+            }}
+          >
+            Approved
+          </span>
+        </div>
+      );
+    }
+
+    // Pending (not approved, no reason yet)
+    return (
+      <div style={{ marginBottom: '14px' }}>
+        <span
+          style={{
+            color: '#92400e',
+            background: '#fff7ed',
+            padding: '4px 8px',
+            borderRadius: 6,
+            fontSize: '13px',
+            fontWeight: 600,
+          }}
+        >
+          Pending approval
+        </span>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div style={{ 
@@ -183,7 +246,7 @@ export default function OrganizerDashboard() {
                     <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px', color: '#111827' }}>{event.title}</h3>
                     <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '6px' }}>{displayDate}</p>
                     {/* approval status */}
-                    {typeof event.is_approved !== 'undefined' && (
+                    {/* {typeof event.is_approved !== 'undefined' && (
                       <div style={{ marginBottom: '14px' }}>
                         {event.is_approved ? (
                           <span style={{ color: '#065f46', background: '#ecfdf5', padding: '4px 8px', borderRadius: 6, fontSize: '13px', fontWeight: 600 }}>Approved</span>
@@ -191,7 +254,8 @@ export default function OrganizerDashboard() {
                           <span style={{ color: '#92400e', background: '#fff7ed', padding: '4px 8px', borderRadius: 6, fontSize: '13px', fontWeight: 600 }}>Pending approval</span>
                         )}
                       </div>
-                    )}
+                    )} */}
+                    {renderStatusBadge(event)}
                     <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
                       <div>
                         <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Tickets Issued</div>
