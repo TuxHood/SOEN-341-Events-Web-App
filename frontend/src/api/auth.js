@@ -1,0 +1,184 @@
+// src/api/auth.js
+// Compute the API root so callers can use paths like `${API_ROOT}/users/me/`.
+// If VITE_API_URL is set it may or may not include the `/api` suffix. Normalize
+// it so API_ROOT always contains the `/api` segment (or default to the proxy
+// `/api` during local dev).
+const rawApi = import.meta.env.VITE_API_URL;
+let API_ROOT;
+if (rawApi) {
+  const r = rawApi.replace(/\/$/, '');
+  API_ROOT = r.endsWith('/api') ? r : `${r}/api`;
+} else {
+  API_ROOT = '/api';
+}
+
+export async function login(email, password) {
+  const res = await fetch(`${API_ROOT}/token/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || "Invalid email or password");
+
+  const data = JSON.parse(text);
+  if (!data.access) throw new Error("No access token returned");
+
+  // Persist tokens
+  localStorage.setItem("access", data.access);
+  if (data.refresh) localStorage.setItem("refresh", data.refresh);
+  // (Optional) store email so we can show a name in the header
+  localStorage.setItem("email", email);
+
+  // pick a landing route if you like
+  return {
+    route:
+      email === "admin@test.com" ? "/admin" :
+      email.includes("organizer") ? "/organizer" : "/events",
+  };
+}
+
+export async function registerStudent(full_name, email, password) {
+  const res = await fetch(`${API_ROOT}/users/register/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: full_name,
+      email,
+      password,
+      // Explicitly set student role to be unambiguous
+      role: "student",
+    }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    try {
+      const data = JSON.parse(text);
+      throw new Error(data.detail || JSON.stringify(data));
+    } catch {
+      throw new Error(text || "Registration failed");
+    }
+  }
+
+  return JSON.parse(text);
+}
+
+// Register an organizer account. Backend will set status=pending for organizer role
+// and require admin approval before activation.
+export async function registerOrganizer(full_name, email, password) {
+  const res = await fetch(`${API_ROOT}/users/register/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: full_name,
+      email,
+      password,
+      role: "organizer",
+    }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    try {
+      const data = JSON.parse(text);
+      throw new Error(data.detail || JSON.stringify(data));
+    } catch {
+      throw new Error(text || "Registration failed");
+    }
+  }
+
+  return JSON.parse(text);
+}
+
+
+export async function getProfile() {
+  const res = await fetch(`${API_ROOT}/users/me/`, {
+    credentials: 'include',
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+  if (res.status === 401) return null;         // not logged in / expired
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export function logout() {
+  // Call backend logout to remove the httponly access_token cookie, then
+  // clear client-side tokens. This is best-effort: if the POST fails we
+  // still clear local storage so the UI returns to signed-out state.
+  (async () => {
+    try {
+      // Helper to read csrftoken cookie if present
+      function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : null;
+      }
+      let csrftoken = getCookie('csrftoken');
+      const headers = {};
+      if (!csrftoken) {
+        // Ensure csrftoken cookie exists (dev helper) before POSTing
+        try {
+          await fetch(`${API_ROOT}/users/csrf/`, { method: 'GET', credentials: 'include' });
+          csrftoken = getCookie('csrftoken');
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (csrftoken) headers['X-CSRFToken'] = csrftoken;
+      // Note: logout endpoint lives under /users/ (e.g. /api/users/logout/)
+      await fetch(`${API_ROOT}/users/logout/`, { method: 'POST', credentials: 'include', headers });
+    } catch (e) {
+      // ignore errors — we'll still clear local data
+    } finally {
+      try { localStorage.removeItem("access"); } catch(_){}
+      try { localStorage.removeItem("refresh"); } catch(_){}
+      try { localStorage.removeItem("email"); } catch(_){}
+    }
+  })();
+}
+
+export function getAccessToken() {
+  // Support both legacy and newer keys
+  return localStorage.getItem("access") || localStorage.getItem("access_token") || null;
+}
+
+// Use this everywhere for protected requests
+export function authHeaders() {
+  const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Export a stable `BASE` name for other modules that import it.
+export const BASE = API_ROOT;
+
+// Refresh the access token using the stored refresh token. Returns the new
+// access token string if successful. Throws on failure so callers can react
+// (e.g., redirect to login).
+export async function refreshAccess() {
+  // Support both legacy and newer refresh key names
+  const refresh = localStorage.getItem('refresh') || localStorage.getItem('refresh_token');
+  if (!refresh) throw new Error('No refresh token');
+
+  const res = await fetch(`${API_ROOT}/token/refresh/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || 'Refresh failed');
+  let data = {};
+  try {
+    data = JSON.parse(text || '{}');
+  } catch (_) {}
+
+  if (data.access) {
+    try { localStorage.setItem('access', data.access); } catch (_) {}
+  }
+  if (data.refresh) {
+    try { localStorage.setItem('refresh', data.refresh); } catch (_) {}
+  }
+  return data.access || null;
+}

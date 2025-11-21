@@ -180,24 +180,43 @@
   position: relative;
 }
 
-.claim-btn {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  margin-top: 1rem;
-  cursor: pointer;
-  border-radius: 4px;
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;          /* allow wrap instead of overflowing */
+  justify-content: center;  /* center buttons under the modal */
+  gap: 8px;
+  margin-top: 16px;
 }
 
-.close-btn {
-  background: #f44336;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  margin-left: 1rem;
+
+.modal-content .claim-btn,
+.modal-content .close-btn {
+  width: 120px;            /* make both buttons same width */
+  height: 40px;            /* same height */
+  border-radius: 8px;      /* smooth rounded edges */
   cursor: pointer;
-  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+}
+
+.modal-content .claim-btn {
+  background-color: #28a745; /* green */
+  color: white;
+}
+
+.modal-content .close-btn {
+  background-color: #dc3545; /* red */
+  color: white;
+}
+
+.modal-content .claim-btn:hover,
+.modal-content .close-btn:hover {
+  opacity: 0.85;            /* soft hover effect */
+}
+
+.modal-content div[style] {
+  justify-content: center;  /* center both buttons */
 }
 .header-right {
   display: flex;
@@ -228,4 +247,43 @@
 .signup-btn {
   background-color: var(--concordia-maroon);
   color: white;
+}
+
+.modal-actions .modal-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;     
+  text-align: center;        
+}
+
+/* Variants */
+.modal-actions .modal-btn.primary {
+  background-color: #7f1d1d;  /* maroon */
+  color: #fff;
+}
+
+.modal-actions .modal-btn.primary:hover {
+  background-color: #5f1313;
+}
+
+.modal-actions .modal-btn.secondary {
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.modal-actions .modal-btn.secondary:hover {
+  background-color: #f3f4f6;
+}
+
+.modal-actions .modal-btn.danger {
+  background-color: #dc2626;  /* red */
+  color: #fff;
+}
+
+.modal-actions .modal-btn.danger:hover {
+  background-color: #b91c1c;
 }

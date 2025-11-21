@@ -17,6 +17,8 @@ if (Test-Path -Path $apiProjectPath) {
     $projectDir = $backendPath
 }
 Set-Location -Path $projectDir
+# Ensure we're in the project directory
+Set-Location -Path $projectDir
 
 # Create virtual environment in backend if missing
 if (-Not (Test-Path -Path '.venv')) {
@@ -25,38 +27,54 @@ if (-Not (Test-Path -Path '.venv')) {
 }
 
 $venvPython = Join-Path $projectDir '.venv\Scripts\python.exe'
-$venvPip = Join-Path $projectDir '.venv\Scripts\pip.exe'
 
-Write-Host "Activating virtual environment (in current session)..."
-try {
-    # Activate the venv inside the selected project directory so activation matches the venv used below
-    & (Join-Path $projectDir '.venv\Scripts\Activate.ps1')
-} catch {
-    Write-Host "Activation script could not be sourced into this session; we'll call venv python directly."
+if (-Not (Test-Path -Path $venvPython)) {
+    Write-Host "Warning: virtualenv python not found at $venvPython; trying system python."
+    $venvPython = "python"
 }
 
-Write-Host "Upgrading pip and installing requirements..."
+Write-Host "Upgrading pip and installing requirements using: $venvPython"
 & $venvPython -m pip install --upgrade pip setuptools wheel
 
 # Ensure python-dotenv is available (some settings load it explicitly)
 try {
-    & $venvPip install python-dotenv
+    & $venvPython -m pip install python-dotenv
 } catch {
     Write-Host "Failed to install python-dotenv via pip. You may need to install it manually."
 }
 
-if (Test-Path -Path (Join-Path $projectDir 'requirements.txt')) {
-    & $venvPip install -r (Join-Path $projectDir 'requirements.txt')
+# Prefer a requirements.txt located inside the selected project directory. If missing,
+# fall back to the backend/requirements.txt so the team's centralized requirements are used.
+$requirementsPath = Join-Path $projectDir 'requirements.txt'
+if (-not (Test-Path -Path $requirementsPath)) {
+    $fallback = Join-Path $backendPath 'requirements.txt'
+    if (Test-Path -Path $fallback) {
+        Write-Host ("No requirements.txt in {0} - using {1} instead." -f $projectDir, $fallback)
+        $requirementsPath = $fallback
+    }
+}
+
+if (Test-Path -Path $requirementsPath) {
+    Write-Host "Installing packages from $requirementsPath using $venvPython -m pip"
+    & $venvPython -m pip install -r $requirementsPath
 } else {
-    Write-Host "No requirements.txt found in $projectDir; installing minimal backend dependencies..."
+    Write-Host "No requirements.txt found; installing minimal backend dependencies..."
     # Install minimal dependencies expected by the project so Django can start
-    & $venvPip install django==5.2.7 djangorestframework django-cors-headers djangorestframework-simplejwt python-dotenv
+    & $venvPython -m pip install django==5.2.7 djangorestframework django-cors-headers djangorestframework-simplejwt python-dotenv
 }
 
 Set-Location -Path $projectDir
 
+Write-Host "Checking for model changes (no files will be written)..."
+& $venvPython manage.py makemigrations --check --dry-run
+if ($LASTEXITCODE -eq 1) {
+    Write-Host "Model changes detected -> generating migrations..."
+    & $venvPython manage.py makemigrations
+} else {
+    Write-Host "No model changes detected. Skipping makemigrations."
+}
+
 Write-Host "Applying migrations (if any)..."
-& $venvPython manage.py makemigrations
 & $venvPython manage.py migrate --noinput
 
 Write-Host "Starting Django dev server on 8000 (project: $projectDir)"

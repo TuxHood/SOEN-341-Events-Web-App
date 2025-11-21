@@ -10,6 +10,7 @@ ROLE_PATH_RULES = {
     ],
     "organizer": [
         "/api/organizer",  # everything under /api/organizer/...
+        "/api/tickets",    # organizers should be able to access ticket endpoints (check-in, listing)
     ],
     "admin": [
         "/api/adminpanel",  # everything under /api/adminpanel/...
@@ -67,18 +68,29 @@ class RoleAuthorizationMiddleware:
             # Bad or missing token; we'll only block if path is protected by rules
             pass
 
-        # Determine which role is allowed for this path
-        required_role = None
+        # Determine which roles are allowed for this path (collect all matches)
+        allowed_roles = set()
         for role, prefixes in ROLE_PATH_RULES.items():
             if any(path.startswith(prefix) for prefix in prefixes):
-                required_role = role
-                break
+                allowed_roles.add(role)
 
-        if required_role:
+        if allowed_roles:
             if not (getattr(request, "user", None) and request.user.is_authenticated):
                 return JsonResponse({"detail": "Authentication required."}, status=401)
-            if request.user.role != required_role and request.user.role != "admin":
-                # Admin can access anything by policy
-                return JsonResponse({"detail": "Forbidden for your role."}, status=403)
+
+            # Admin can always access
+            if request.user.role == "admin":
+                return self.get_response(request)
+
+            # Exact role allowed?
+            if request.user.role in allowed_roles:
+                return self.get_response(request)
+
+            # Backwards-compatible: allow organizer-flagged users when organizer role is allowed
+            if "organizer" in allowed_roles:
+                if getattr(request.user, "is_organizer", False) or getattr(request.user, "is_approved_organizer", False):
+                    return self.get_response(request)
+
+            return JsonResponse({"detail": "Forbidden for your role."}, status=403)
 
         return self.get_response(request)
