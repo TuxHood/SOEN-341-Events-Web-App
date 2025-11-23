@@ -257,20 +257,6 @@ const EventModal = ({ event, onClose }) => {
               </>
             )
           )}
-
-          {event.googleCalendarUrl && (
-            <a
-              href={event.googleCalendarUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={{ textDecoration: "none" }}
-            >
-              <button className="modal-btn primary">
-                Add to Google Calendar
-              </button>
-            </a>
-          )}
-
           <button className="modal-btn danger" onClick={onClose}>Close</button>
         </div>
 

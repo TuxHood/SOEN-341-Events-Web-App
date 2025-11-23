@@ -41,7 +41,6 @@ export default function TicketConfirmation() {
         <p className="buy-sub">Your ticket has been issued. Show this QR code at entry.</p>
 
         <div className="buy-grid">
-          {/* LEFT side: event details (unchanged look) */}
           <div className="buy-left">
             <h3 className="event-name">{event.title}</h3>
             {event.organization && (
@@ -49,10 +48,23 @@ export default function TicketConfirmation() {
             )}
             <div><span className="buy-label">When:</span> {when}</div>
             {event.description && <p className="buy-desc">{event.description}</p>}
+
+          {event.google_calendar_url && (
+              <a
+                href={event.google_calendar_url}
+                target="_blank"
+                rel="noreferrer"
+                style={{ display: "inline-block", marginTop: 8, marginRight: 8 }}
+              >
+                <button className="btn" type="button">
+                  Add to Google Calendar
+                </button>
+              </a>
+            )}
+
             <Link className="btn subtle" to="/events" style={{marginTop:12}}>Back to Events</Link>
           </div>
 
-          {/* RIGHT side: framed QR box with same proportions as before */}
           <div className="qr-panel">
             {qrValue ? (
               <QRCodeCanvas value={qrValue} size={256} includeMargin />
