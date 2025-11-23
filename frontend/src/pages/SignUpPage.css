@@ -19,7 +19,7 @@
   .signup-container h1 {
     text-align: center;
     color: white;
-    background: #111827;
+    background: #8C1D40;
     display: inline-block;
     padding: 1rem 3rem;
     border-radius: 8px;
@@ -60,7 +60,7 @@
   }
   
   .role-card:hover {
-    border-color: #111827;
+    border-color: #8C1D40;
     transform: translateY(-8px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   }
@@ -79,12 +79,12 @@
   }
   
   .role-card:hover .role-icon {
-    background: #111827;
+    background: #8C1D40;
     transform: scale(1.1);
   }
   
   .role-card h3 {
-    color: #111827;
+    color: #8C1D40;
     margin-bottom: 1rem;
     font-size: 1.4rem;
     font-weight: 700;
@@ -105,7 +105,7 @@
   .back-button {
     background: none;
     border: none;
-    color: #111827;
+    color: #8C1D40;
     font-size: 1rem;
     cursor: pointer;
     padding: 0.5rem 1rem;
@@ -129,7 +129,7 @@
   
   .form-header h2 {
     color: white;
-    background: #111827;
+    background: #8C1D40;
     display: inline-block;
     padding: 1rem 3rem;
     border-radius: 8px;
@@ -163,7 +163,7 @@
   }
   
   .form-group label {
-    color: #111827;
+    color: #8C1D40;
     font-weight: 600;
     margin-bottom: 0.625rem;
     font-size: 0.95rem;
@@ -180,7 +180,7 @@
   
   .form-group input:focus {
     outline: none;
-    border-color: #111827;
+    border-color: #8C1D40;
     box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.05);
   }
   
@@ -196,7 +196,7 @@
   }
   
   .submit-button {
-    background: #111827;
+    background: #8C1D40;
     color: white;
     border: none;
     border-radius: 10px;

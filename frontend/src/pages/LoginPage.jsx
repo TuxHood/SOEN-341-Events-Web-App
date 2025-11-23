@@ -86,7 +86,7 @@ export default function LoginPage() {
         minHeight: "100vh",
         alignItems: "center",
         justifyContent: "center",
-        background: "#F7F8FA",
+        background: "#8C1D40",
       }}
     >
       <div
@@ -105,7 +105,7 @@ export default function LoginPage() {
             style={{
               fontSize: "1.875rem",
               fontWeight: "800",
-              color: "var(--foreground)",
+              color: "#8C1D40",
             }}
           >
             Sign in to your account
@@ -122,7 +122,7 @@ export default function LoginPage() {
               to="/auth/sign-up"
               style={{
                 fontWeight: "600",
-                color: "var(--primary)",
+                color: "#8C1D40",
                 textDecoration: "none",
               }}
             >
@@ -160,6 +160,8 @@ export default function LoginPage() {
                   fontSize: "0.875rem",
                   fontWeight: 600,
                   marginBottom: "0.5rem",
+                  color: "#8C1D40",   
+
                 }}
               >
                 Email address
@@ -199,6 +201,8 @@ export default function LoginPage() {
                   fontSize: "0.875rem",
                   fontWeight: 600,
                   marginBottom: "0.5rem",
+                  color: "#8C1D40",  
+
                 }}
               >
                 Password
@@ -229,7 +233,19 @@ export default function LoginPage() {
           <button
             type="submit"
             className="btn btn-primary btn-lg"
-            style={{ width: "100%", marginTop: "0.5rem", color: "black" }}
+            style={{
+                  width: "100%",
+                  marginTop: "0.5rem",
+                  background: "#8C1D40",   
+                  color: "white",           
+                  padding: "0.85rem",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontSize: "1rem",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                                      }}
+
           >
             Sign in
           </button>
