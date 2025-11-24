@@ -34,5 +34,20 @@ if [[ ! -d "${FRONTEND_PATH}/node_modules/jsqr" ]]; then
   npm --prefix "${FRONTEND_PATH}" install jsqr --save
 fi
 
+# --- Auto-repair for broken Rolldown/Vite native bindings ---
+ROLLDOWN_DIR="${FRONTEND_PATH}/node_modules/@rolldown"
+
+# Check that @rolldown exists AND has at least one binding-* directory
+if [[ ! -d "${ROLLDOWN_DIR}" ]] || ! compgen -G "${ROLLDOWN_DIR}/binding-"* >/dev/null 2>&1; then
+  echo "Detected missing Rolldown native binding — performing clean reinstall..."
+
+  rm -rf "${FRONTEND_PATH}/node_modules"
+  rm -f "${FRONTEND_PATH}/package-lock.json"
+
+  npm --prefix "${FRONTEND_PATH}" install
+
+  echo "Reinstall complete. Continuing startup..."
+fi
+
 echo "Starting Vite dev server (npm --prefix ${FRONTEND_PATH} run dev)"
 exec npm --prefix "${FRONTEND_PATH}" run dev
