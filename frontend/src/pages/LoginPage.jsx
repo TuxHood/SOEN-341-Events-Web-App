@@ -29,16 +29,9 @@ export default function LoginPage() {
     }
 
     try {
-      // Ensure csrf cookie is present (dev helper) before POSTing
       try {
-        // Use the axios instance which sets withCredentials so the cookie is
-        // correctly stored by the browser behind the Vite proxy. The CSRF
-        // helper is exposed under the `users` include at `/api/users/csrf/`.
-        // Calling `/csrf/` hits the Vite server (dev) and returns 404.
         await api.get('/users/csrf/');
-      } catch (e) {
-        // ignore; if csrf endpoint isn't reachable the login may still work
-      }
+      } catch (e) {}
 
       const result = await apiCall(API_ENDPOINTS.login, {
         method: 'POST',
@@ -46,31 +39,22 @@ export default function LoginPage() {
       });
 
       if (!result.ok) {
-        // Show backend error message when available
         const message = result.data && (result.data.detail || result.data.error || JSON.stringify(result.data));
         setError(message || 'Invalid email or password');
         return;
       }
 
-  // Login success: store token and redirect based on role
-  const user = result.data.user;
-  if (setUser) setUser(user);
-      // Store access token for API use (frontend may also read cookie set by backend)
+      const user = result.data.user;
+      if (setUser) setUser(user);
+
       if (result.data.access) {
-        // Persist access token under both keys used across the codebase to
-        // remain backward-compatible with older helpers (`access`) and newer
-        // code (`access_token`).
         localStorage.setItem('access_token', result.data.access);
         try { localStorage.setItem('access', result.data.access); } catch (e) {}
-        // Ensure axios instance also sends the new token for subsequent requests
         try {
           api.defaults.headers.common['Authorization'] = `Bearer ${result.data.access}`;
-        } catch (e) {
-          // ignore if axios isn't available
-        }
+        } catch (e) {}
       }
 
-      // route by role, with fallbacks
       const roleRoute = user?.role === "admin" ? "/admin" : user?.role === "organizer" ? "/organizer" : "/events";
 
       navigate(returnTo || roleRoute);
@@ -110,6 +94,7 @@ export default function LoginPage() {
           >
             Sign in to your account
           </h2>
+
           <p
             style={{
               marginTop: "0.75rem",
@@ -160,8 +145,7 @@ export default function LoginPage() {
                   fontSize: "0.875rem",
                   fontWeight: 600,
                   marginBottom: "0.5rem",
-                  color: "#8C1D40",   
-
+                  color: "#8C1D40",
                 }}
               >
                 Email address
@@ -201,8 +185,7 @@ export default function LoginPage() {
                   fontSize: "0.875rem",
                   fontWeight: 600,
                   marginBottom: "0.5rem",
-                  color: "#8C1D40",  
-
+                  color: "#8C1D40",
                 }}
               >
                 Password
@@ -227,6 +210,16 @@ export default function LoginPage() {
                 }}
                 placeholder="Password"
               />
+
+              {/* 🔹 Forgot Password Link (Added) */}
+              <p className="text-sm mt-2" style={{ textAlign: "right" }}>
+                <Link
+                  to="/auth/forgot-password"
+                  style={{ color: "#8C1D40", fontWeight: "600", textDecoration: "none" }}
+                >
+                  Forgot password?
+                </Link>
+              </p>
             </div>
           </div>
 
@@ -234,18 +227,17 @@ export default function LoginPage() {
             type="submit"
             className="btn btn-primary btn-lg"
             style={{
-                  width: "100%",
-                  marginTop: "0.5rem",
-                  background: "#8C1D40",   
-                  color: "white",           
-                  padding: "0.85rem",
-                  borderRadius: "8px",
-                  border: "none",
-                  fontSize: "1rem",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                                      }}
-
+              width: "100%",
+              marginTop: "0.5rem",
+              background: "#8C1D40",
+              color: "white",
+              padding: "0.85rem",
+              borderRadius: "8px",
+              border: "none",
+              fontSize: "1rem",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
           >
             Sign in
           </button>
