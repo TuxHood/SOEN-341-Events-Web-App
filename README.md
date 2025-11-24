@@ -23,7 +23,41 @@ A platform for students to discover, organize, and attend campus events. It's bu
 - Database: PostgreSQL
 
 ## 🔑 Quick Start - Test Credentials
+Concise quick commands
 
+PowerShell (repo root):
+```powershell
+# start backend
+.\scripts\start-backend.ps1
+
+# start frontend (new terminal)
+.\scripts\start-frontend.ps1
+
+# generate sample data
+python .\scripts\generate_sample_data.py
+
+# run tests
+.\scripts\run-tests.ps1
+```
+
+Bash (repo root):
+```bash
+# start backend
+chmod +x ./scripts/start-backend.sh    #if "permission denied"
+./scripts/start-backend.sh
+
+# start frontend (new terminal)
+chmod +x ./scripts/start-frontend.sh.   #if "permission denied"
+./scripts/start-frontend.sh
+
+# generate sample data
+source backend/collegeEventsWeb/.venv/bin/activate
+python ./scripts/generate_sample_data.py
+
+# run tests
+chmod +x ./scripts/run-tests.sh  #if "permission denied"
+./scripts/run-tests.sh
+```
 **For testing and development:**
 
 - **Organizer**: `organizer@example.com` / `testpass123`
