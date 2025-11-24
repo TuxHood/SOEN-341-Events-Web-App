@@ -5,7 +5,7 @@ import axios from "axios";
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export default function ResetPassword() {
-  const { uid, token } = useParams();
+  const { uidb64, token } = useParams();
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [status, setStatus] = useState("");
@@ -21,7 +21,7 @@ export default function ResetPassword() {
 
     try {
       await axios.post(
-        `${API_BASE}/api/users/password-reset/${uid}/${token}/`,
+        `${API_BASE}/api/users/password-reset/${uidb64}/${token}/`,
         { password }
       );
       setStatus("Password reset successfully. You can now log in.");
