@@ -31,6 +31,7 @@ PowerShell (repo root):
 .\scripts\start-backend.ps1
 
 # start frontend (new terminal)
+# Make sure you have the correct version of Node.js installed: Vite requires Node.js 20.19+ or 22.12+. Please upgrade if necessary.
 .\scripts\start-frontend.ps1
 
 # generate sample data
@@ -47,6 +48,7 @@ chmod +x ./scripts/start-backend.sh    #if "permission denied"
 ./scripts/start-backend.sh
 
 # start frontend (new terminal)
+# Make sure you have the correct version of Node.js installed: Vite requires Node.js 20.19+ or 22.12+. Please upgrade if necessary.
 chmod +x ./scripts/start-frontend.sh.   #if "permission denied"
 ./scripts/start-frontend.sh
 
