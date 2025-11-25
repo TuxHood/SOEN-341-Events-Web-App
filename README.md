@@ -23,7 +23,7 @@ A platform for students to discover, organize, and attend campus events. It's bu
 - Database: PostgreSQL
 
 ## Quick Start
-See `docs/INSTALLATION.md` for full install and launch instructions.
+See [`docs/INSTALLATION.md`](docs/INSTALLATION.md) for full install and launch instructions.
 
 ### 🔑 Quick Start - Test Credentials
 Concise quick commands
@@ -77,11 +77,9 @@ python manage.py create_sample_data
 ## Documentation
 The repository's developer and usage guides are consolidated under the `docs/` folder. Refer to these files for detailed, canonical instructions:
 
-- `docs/INSTALLATION.md` — install, setup and launch the dev environment (backend + frontend).
-- `docs/GENERATE_SAMPLE_DATA.md` — how to generate or refresh sample data safely.
-- `docs/HELPER_SCRIPTS.md` — description and usage of the `scripts/` helper scripts.
-- `docs/RUN_TESTS.md` — test-running instructions and CI notes.
-- `docs/TROUBLESHOOTING.md` — common problems and fixes (migrations, venv, Node issues).
-- `docs/NOTES.md` — miscellaneous developer notes and tips.
-
-If you maintain other copies of quickstart instructions (for example `InstallationGuide.txt`), prefer keeping a single canonical source in `docs/INSTALLATION.md` to avoid drift.
+- [`docs/INSTALLATION.md`](docs/INSTALLATION.md) — install, setup and launch the dev environment (backend + frontend).
+- [`docs/GENERATE_SAMPLE_DATA.md`](docs/GENERATE_SAMPLE_DATA.md) — how to generate or refresh sample data safely.
+- [`docs/HELPER_SCRIPTS.md`](docs/HELPER_SCRIPTS.md) — description and usage of the `scripts/` helper scripts.
+- [`docs/RUN_TESTS.md`](docs/RUN_TESTS.md) — test-running instructions and CI notes.
+- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — common problems and fixes (migrations, venv, Node issues).
+- [`docs/NOTES.md`](docs/NOTES.md) — miscellaneous developer notes and tips.
