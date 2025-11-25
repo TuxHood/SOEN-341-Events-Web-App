@@ -31,6 +31,13 @@ def make_users(User, count, role='student'):
     for i in range(1, count + 1):
         email = f'{role}{i}@example.com'
         name = f'{role.title()} {i}'
+        # Skip users that already exist to make the generator safe to re-run
+        existing = User.objects.filter(email=email).first()
+        if existing:
+            print(f"Skipping existing user {email}")
+            users.append(existing)
+            continue
+
         # Use a simple password for dev only
         u = User.objects.create_user(email=email, name=name, password='password')
         if role == 'organizer':
