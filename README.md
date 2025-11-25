@@ -9,12 +9,12 @@ A platform for students to discover, organize, and attend campus events. It's bu
 - Admin Tools: Moderation tools to ensure event quality and safety.
 
 ## Team Members
+- Aris Moldovan - 40290947 - GitHub Username: TuxHood
 - Yan Znaty - 40284722 - GitHub Username: yznaty
 - Katerina D'Ambrosio - 40281139 - GitHub Username: kdambrosio5
 - Rafik Shenouda - 40207802 - GitHub Username: Rafshenou
 - Ayaan Vashistha - 40269814 - GitHub Username: ayaanvashistha17
 - Joseph Daoud - 40210485 - GitHub Username: dahood434
-- Aris Moldovan - 40290947 - GitHub Username: TuxHood
 - Ryan Malaeb - 40238894 - GitHub Username: RyanMalaeb
 
 ## Languages & Techniques
