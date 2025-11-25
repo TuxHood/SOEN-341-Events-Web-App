@@ -23,10 +23,13 @@ A platform for students to discover, organize, and attend campus events. It's bu
 - Database: PostgreSQL
 
 ## Quick Start
-See [`docs/INSTALLATION.md`](docs/INSTALLATION.md) for full install and launch instructions.
+See [`docs/INSTALLATION.md`](docs/INSTALLATION.md) for full installation and launch instructions.
 
 ### 🔑 Quick Start - Test Credentials
-Concise quick commands
+Concise quick commands. For more details consult:
+- [`docs/HELPER_SCRIPTS.md`](docs/HELPER_SCRIPTS.md) for launching the website
+- [`docs/GENERATE_SAMPLE_DATA.md`](docs/GENERATE_SAMPLE_DATA.md) for generating sample data
+- [`docs/RUN_TESTS.md`](docs/RUN_TESTS.md) for running the tests
 
 PowerShell (repo root):
 ```powershell
@@ -64,17 +67,11 @@ chmod +x ./scripts/run-tests.sh  #if "permission denied"
 ./scripts/run-tests.sh
 ```
 **For testing and development:**
+After generating sample data from [`docs/GENERATE_SAMPLE_DATA.md`](docs/GENERATE_SAMPLE_DATA.md) :
+- **Organizer**: `organizer1@example.com` / `password`
+- **Attendee**: `student1@example.com` / `password`
 
-- **Organizer**: `organizer@example.com` / `testpass123`
-- **Attendee**: `attendee1@example.com` / `testpass123`
-
-**Create sample data:**
-```bash
-cd backend/collegeEventsWeb
-python manage.py create_sample_data
-```
-
-## Documentation
+## Documentations
 The repository's developer and usage guides are consolidated under the `docs/` folder. Refer to these files for detailed, canonical instructions:
 
 - [`docs/INSTALLATION.md`](docs/INSTALLATION.md) — install, setup and launch the dev environment (backend + frontend).
@@ -83,3 +80,6 @@ The repository's developer and usage guides are consolidated under the `docs/` f
 - [`docs/RUN_TESTS.md`](docs/RUN_TESTS.md) — test-running instructions and CI notes.
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — common problems and fixes (migrations, venv, Node issues).
 - [`docs/NOTES.md`](docs/NOTES.md) — miscellaneous developer notes and tips.
+
+## System architecture
+System architecture of this repo's system [`wiki/System-Architecture`](https://github.com/TuxHood/SOEN-341-Events-Web-App/wiki/System-Architecture)
