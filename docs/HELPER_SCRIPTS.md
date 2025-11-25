@@ -11,8 +11,8 @@ Usage examples
 PowerShell (repo root):
 
 ```powershell
-.\scripts\start-backend.ps1
-.\scripts\start-frontend.ps1
+.\scripts\start-backend.cmd
+.\scripts\start-frontend.cmd
 ```
 
 Bash (repo root):
