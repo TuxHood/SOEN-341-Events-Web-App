@@ -38,6 +38,19 @@ if (-Not (Test-Path -Path $jsqrPkgPath)) {
     npm --prefix "$frontendPath" install jsqr --save
 }
 
+# --- Auto-repair for broken Rolldown/Vite native bindings ---
+$rolldownBinding = Join-Path $frontendPath 'node_modules\@rolldown\binding-win32-x64-msvc'
+if (-Not (Test-Path -Path $rolldownBinding)) {
+    Write-Host "Detected missing rolldown native binding — performing clean reinstall..."
+
+    Remove-Item -Recurse -Force (Join-Path $frontendPath 'node_modules')
+    Remove-Item -Force (Join-Path $frontendPath 'package-lock.json') -ErrorAction SilentlyContinue
+
+    npm --prefix "$frontendPath" install
+
+    Write-Host "Reinstall complete. Continuing startup..."
+}
+
 Write-Host "Starting Vite dev server (using npm --prefix $frontendPath run dev)"
 $npmExe = 'npm.cmd'
 try {
