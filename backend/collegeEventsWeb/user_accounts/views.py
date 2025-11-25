@@ -1,14 +1,28 @@
-from rest_framework import status, permissions, viewsets, serializers as drf_serializers
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.decorators import action
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.utils import timezone
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+from django.core.mail import send_mail
+
+from rest_framework import status, permissions, viewsets, serializers as drf_serializers
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import User
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from .serializers import (
+    RegisterSerializer,
+    LoginSerializer,
+    UserSerializer,
+)
+
+UserModel = get_user_model()
 
 
 class DebugAuthView(APIView):
@@ -100,6 +114,7 @@ class LoginView(APIView):
 
             message = extract_message(exc.detail)
             return Response({'detail': message or 'Invalid request.'}, status=status.HTTP_400_BAD_REQUEST)
+
         user = serializer.validated_data["user"]
 
         refresh = RefreshToken.for_user(user)
@@ -135,9 +150,100 @@ class MeView(APIView):
 
 
 # -------------------------
+# Password Reset (Email-based)
+# -------------------------
+class PasswordResetRequestView(APIView):
+    """
+    POST { "email": "user@example.com" }
+
+    Always returns 200 with a generic message
+    (so you don’t leak whether the email exists).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get("email")
+        if not email:
+            return Response(
+                {"detail": "Email is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = UserModel.objects.get(email=email)
+        except UserModel.DoesNotExist:
+            # Don't reveal that the email doesn't exist
+            return Response(
+                {"detail": "If that email exists, a reset link has been sent."},
+                status=status.HTTP_200_OK
+            )
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        frontend_base = getattr(settings, "FRONTEND_BASE_URL", "http://localhost:5173")
+        reset_url = f"{frontend_base}/auth/reset-password/{uid}/{token}"
+
+        send_mail(
+            subject="Reset your Campus Events password",
+            message=f"Click the link below to reset your password:\n\n{reset_url}",
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return Response(
+            {"detail": "If that email exists, a reset link has been sent."},
+            status=status.HTTP_200_OK
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    POST /api/users/password-reset/<uidb64>/<token>/
+    Body: { "password": "newPassword123" }
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, uidb64, token, *args, **kwargs):
+        new_password = request.data.get("password")
+        if not new_password:
+            return Response(
+                {"detail": "Password is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = UserModel.objects.get(pk=uid)
+        except (ValueError, TypeError, OverflowError, UserModel.DoesNotExist):
+            return Response(
+                {"detail": "Invalid reset link."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not default_token_generator.check_token(user, token):
+            return Response(
+                {"detail": "Invalid or expired token."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response(
+            {"detail": "Password has been reset successfully."},
+            status=status.HTTP_200_OK
+        )
+
+
+# -------------------------
 # ADMIN: Organizer Approval
 # -------------------------
 class UserViewSet(viewsets.ModelViewSet):
+    """
+    Admin-only user management + organizer approval flows.
+    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAdminUser]
@@ -169,4 +275,3 @@ class UserViewSet(viewsets.ModelViewSet):
             {"error": "User is not a pending organizer."},
             status=status.HTTP_400_BAD_REQUEST
         )
-

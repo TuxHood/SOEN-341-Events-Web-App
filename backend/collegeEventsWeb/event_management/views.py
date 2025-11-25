@@ -345,7 +345,7 @@ class EventViewSet(viewsets.ModelViewSet):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="attendees_{event.id}_{event.title.replace(" ", "_")}.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time', 'QR Code'])
+        writer.writerow(['Ticket ID', 'Name', 'Email', 'Check-in Status', 'Check-in Time'])
 
         for t in event.event_management_tickets.select_related('owner').all():
             writer.writerow([
@@ -354,7 +354,6 @@ class EventViewSet(viewsets.ModelViewSet):
                 getattr(t.owner, "email", ""),
                 'Checked In' if t.is_used else 'Not Checked In',
                 t.created_at if t.is_used else '',
-                getattr(t, "qr_code", ""),
             ])
         return response
 

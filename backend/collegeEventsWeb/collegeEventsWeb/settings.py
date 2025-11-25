@@ -228,3 +228,10 @@ REST_FRAMEWORK = {
 MEDIA_URL = "/media/"
 from pathlib import Path
 MEDIA_ROOT = BASE_DIR / "media"
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'no-reply@campusevents.local'
+
+# Where the frontend lives (used to build reset links)
+FRONTEND_BASE_URL = os.environ.get('FRONTEND_BASE_URL', 'http://localhost:5173')
+# FRONTEND_BASE_URL = 'http://localhost:5173'
