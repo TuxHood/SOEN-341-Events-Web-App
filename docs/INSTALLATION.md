@@ -83,6 +83,8 @@ python manage.py test
   - Cause: generator uses deterministic emails (student1@example.com, etc.). Re-running will try to recreate them.
   - Quick fixes:
     - Delete the local DB and re-run migrations (dev-only, destructive):
+python manage.py migrate --noinput
+python manage.py createsuperuser --email you@example.com
       ```powershell
       Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force
       cd backend\collegeEventsWeb
