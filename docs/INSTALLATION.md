@@ -34,6 +34,7 @@ python -m venv .venv            # create venv if missing
 python -m pip install --upgrade pip setuptools wheel
 cd ..
 pip install -r requirements.txt
+```
 ## More docs
 
 Some related topics have their own focused documentation. See the files below for details:
@@ -48,7 +49,7 @@ Adjust paths and commands to your local environment as needed.
 source .venv/bin/activate
 cd ../..
 python ./scripts/generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
-```
+
 
 ## Run tests
 
