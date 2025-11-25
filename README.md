@@ -79,7 +79,6 @@ The repository's developer and usage guides are consolidated under the `docs/` f
 - [`docs/HELPER_SCRIPTS.md`](docs/HELPER_SCRIPTS.md) — description and usage of the `scripts/` helper scripts.
 - [`docs/RUN_TESTS.md`](docs/RUN_TESTS.md) — test-running instructions and CI notes.
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — common problems and fixes (migrations, venv, Node issues).
-- [`docs/NOTES.md`](docs/NOTES.md) — miscellaneous developer notes and tips.
 
 ## System architecture
 System architecture of this repo's system [`wiki/System-Architecture`](https://github.com/TuxHood/SOEN-341-Events-Web-App/wiki/System-Architecture)
