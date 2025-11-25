@@ -22,7 +22,10 @@ A platform for students to discover, organize, and attend campus events. It's bu
 - Backend: Python with Django
 - Database: PostgreSQL
 
-## 🔑 Quick Start - Test Credentials
+## Quick Start
+See `docs/INSTALLATION.md` for full install and launch instructions.
+
+### 🔑 Quick Start - Test Credentials
 Concise quick commands
 
 PowerShell (repo root):
@@ -49,7 +52,7 @@ chmod +x ./scripts/start-backend.sh    #if "permission denied"
 
 # start frontend (new terminal)
 # Make sure you have the correct version of Node.js installed: Vite requires Node.js 20.19+ or 22.12+. Please upgrade if necessary.
-chmod +x ./scripts/start-frontend.sh.   #if "permission denied"
+chmod +x ./scripts/start-frontend.sh    #if "permission denied"
 ./scripts/start-frontend.sh
 
 # generate sample data
@@ -70,3 +73,15 @@ chmod +x ./scripts/run-tests.sh  #if "permission denied"
 cd backend/collegeEventsWeb
 python manage.py create_sample_data
 ```
+
+## Documentation
+The repository's developer and usage guides are consolidated under the `docs/` folder. Refer to these files for detailed, canonical instructions:
+
+- `docs/INSTALLATION.md` — install, setup and launch the dev environment (backend + frontend).
+- `docs/GENERATE_SAMPLE_DATA.md` — how to generate or refresh sample data safely.
+- `docs/HELPER_SCRIPTS.md` — description and usage of the `scripts/` helper scripts.
+- `docs/RUN_TESTS.md` — test-running instructions and CI notes.
+- `docs/TROUBLESHOOTING.md` — common problems and fixes (migrations, venv, Node issues).
+- `docs/NOTES.md` — miscellaneous developer notes and tips.
+
+If you maintain other copies of quickstart instructions (for example `InstallationGuide.txt`), prefer keeping a single canonical source in `docs/INSTALLATION.md` to avoid drift.
