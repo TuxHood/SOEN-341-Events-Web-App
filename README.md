@@ -66,7 +66,7 @@ python ./scripts/generate_sample_data.py
 chmod +x ./scripts/run-tests.sh  #if "permission denied"
 ./scripts/run-tests.sh
 ```
-**For testing and development:**
+**For testing and development.**
 After generating sample data from [`docs/GENERATE_SAMPLE_DATA.md`](docs/GENERATE_SAMPLE_DATA.md) :
 - **Organizer**: `organizer1@example.com` / `password`
 - **Attendee**: `student1@example.com` / `password`
