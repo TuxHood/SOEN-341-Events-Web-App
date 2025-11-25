@@ -76,13 +76,22 @@ included script or manually via the Django shell.
 With the script (recommended):
 From the repo root (venv activated):
 
-PowerShell:
+PowerShell (Windows):
 ```powershell
+# activate the project's venv first (PowerShell)
+cd backend\collegeEventsWeb
+.\.venv\Scripts\Activate.ps1
+cd ..\..
+# run generator from repo root
 python .\scripts\generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
 ```
 
-bash:
+Bash / macOS / Linux:
 ```bash
+# activate the project's venv first (bash)
+cd backend/collegeEventsWeb
+source .venv/bin/activate
+cd ../..
 python ./scripts/generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
 ```
 
@@ -176,8 +185,8 @@ PowerShell (repo root):
 # start frontend (new terminal)
 .\scripts\start-frontend.ps1
 
-# generate sample data
-python .\scripts\generate_sample_data.py
+# generate sample data (run from repo root; ensure the venv is activated first)
+python .\scripts\generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
 
 # run tests
 .\scripts\run-tests.ps1
@@ -186,21 +195,46 @@ python .\scripts\generate_sample_data.py
 Bash (repo root):
 ```bash
 # start backend
-chmod +x ./scripts/start-backend.sh    #if "permission denied"
+chmod +x ./scripts/start-backend.sh    # if "permission denied"
 ./scripts/start-backend.sh
 
 # start frontend (new terminal)
-chmod +x ./scripts/start-frontend.sh.   #if "permission denied"
+chmod +x ./scripts/start-frontend.sh    # if "permission denied"
 ./scripts/start-frontend.sh
 
-# generate sample data
+# generate sample data (bash)
 source backend/collegeEventsWeb/.venv/bin/activate
-python ./scripts/generate_sample_data.py
+python ./scripts/generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
 
 # run tests
-chmod +x ./scripts/run-tests.sh  #if "permission denied"
+chmod +x ./scripts/run-tests.sh  # if "permission denied"
 ./scripts/run-tests.sh
 ```
+
+Troubleshooting: UNIQUE constraint failed when running the generator
+```text
+django.db.utils.IntegrityError: UNIQUE constraint failed: users.email
+```
+- Cause: the generator creates deterministic emails (student1@example.com, organizer1@example.com, ...). Rerunning it against an existing DB will attempt to recreate users and hit the unique email constraint.
+- Fixes:
+	- Re-run the generator after removing the local DB (dev-only, destructive):
+		- PowerShell:
+			```powershell
+			Remove-Item backend\collegeEventsWeb\db.sqlite3 -Force
+			cd backend\collegeEventsWeb
+			.\.venv\Scripts\Activate.ps1
+			python manage.py migrate --noinput
+			```
+		- Bash:
+			```bash
+			rm backend/collegeEventsWeb/db.sqlite3
+			cd backend/collegeEventsWeb
+			source .venv/bin/activate
+			python manage.py migrate --noinput
+			```
+	- Or run the generator with smaller counts or different ranges so it won't collide with existing users.
+	- Alternatively you can inspect and remove the specific conflicting users from the Django admin or using `manage.py shell`.
+
 
 
 
