@@ -35,6 +35,9 @@ python -m pip install --upgrade pip setuptools wheel
 cd ..
 pip install -r requirements.txt
 ```
+## Launching the website
+Use `docs/HELPER_SCRIPTS.md` for more details on how to launch the website.
+
 ## More docs
 
 Some related topics have their own focused documentation. See the files below for details:
