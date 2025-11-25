@@ -33,87 +33,17 @@ python -m venv .venv            # create venv if missing
 .\.venv\Scripts\Activate.ps1  # activate the venv for this session
 python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
-python manage.py migrate --noinput
-python manage.py createsuperuser --email you@example.com
-```
+## More docs
 
-### macOS / Linux (bash)
+Some related topics have their own focused documentation. See the files below for details:
 
-```bash
-cd backend/collegeEventsWeb
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
-python manage.py migrate --noinput
-python manage.py createsuperuser --email you@example.com
-```
+- `docs/GENERATE_SAMPLE_DATA.md` — Sample-data generator usage and options.
+- `docs/RUN_TESTS.md` — How to run the backend test suite.
+- `docs/HELPER_SCRIPTS.md` — Details about helper scripts for starting backend/frontend and usage examples.
+- `docs/TROUBLESHOOTING.md` — Troubleshooting tips and common fixes.
+- `docs/NOTES.md` — Project notes and suggested next steps for development.
 
-### Start backend
-
-Recommended: use the helper script (it will create/upgrade venv and run migrations if needed).
-
-PowerShell (from repo root):
-```powershell
-.\scripts\start-backend.ps1
-```
-
-Bash (from repo root):
-```bash
-chmod +x ./scripts/start-backend.sh   # if needed
-./scripts/start-backend.sh
-```
-
-Or run directly from the backend folder:
-```bash
-cd backend/collegeEventsWeb
-source .venv/bin/activate   # or .\.venv\Scripts\Activate.ps1 on Windows
-python manage.py runserver 8000
-```
-
-## Frontend (React + Vite)
-
-From the repository root open a second terminal.
-
-### Recommended (helper script):
-
-PowerShell:
-```powershell
-.\scripts\start-frontend.ps1
-```
-
-Bash:
-```bash
-chmod +x ./scripts/start-frontend.sh  # if needed
-./scripts/start-frontend.sh
-```
-
-### Manual (first time only):
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Vite runs at `http://localhost:5173` by default and the project config proxies API calls from `/api` to `http://localhost:8000`.
-
-## Generate sample data
-
-There is a script to populate the DB with sample venues, events, organizers and students: `scripts/generate_sample_data.py`.
-See `docs/GENERATE_SAMPLE_DATA.txt` for a focused guide. Quick examples:
-
-**PowerShell (activate venv first):**
-```powershell
-cd backend\collegeEventsWeb
-.\.venv\Scripts\Activate.ps1
-cd ..\..
-python .\scripts\generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
-```
-
-**Bash:**
-```bash
-cd backend/collegeEventsWeb
+Adjust paths and commands to your local environment as needed.
 source .venv/bin/activate
 cd ../..
 python ./scripts/generate_sample_data.py --venues 4 --events-per-venue 5 --students 50 --organizers 4 --registrations-per-event 10
