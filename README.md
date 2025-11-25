@@ -31,11 +31,11 @@ Concise quick commands
 PowerShell (repo root):
 ```powershell
 # start backend
-.\scripts\start-backend.ps1
+.\scripts\start-backend.cmd
 
 # start frontend (new terminal)
 # Make sure you have the correct version of Node.js installed: Vite requires Node.js 20.19+ or 22.12+. Please upgrade if necessary.
-.\scripts\start-frontend.ps1
+.\scripts\start-frontend.cmd
 
 # generate sample data
 python .\scripts\generate_sample_data.py
