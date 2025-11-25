@@ -32,6 +32,7 @@ cd backend\collegeEventsWeb
 python -m venv .venv            # create venv if missing
 .\.venv\Scripts\Activate.ps1  # activate the venv for this session
 python -m pip install --upgrade pip setuptools wheel
+cd ..
 pip install -r requirements.txt
 ## More docs
 
