@@ -36,16 +36,16 @@ cd ..
 pip install -r requirements.txt
 ```
 ## Launching the website
-Use [`docs/HELPER_SCRIPTS.md`](docs/HELPER_SCRIPTS.md) for more details on how to launch the website.
+Use [`docs/HELPER_SCRIPTS.md`](./HELPER_SCRIPTS.md) for more details on how to launch the website.
 
 ## More docs
 
 Some related topics have their own focused documentation. See the files below for details:
 
-- [`docs/GENERATE_SAMPLE_DATA.md`](docs/GENERATE_SAMPLE_DATA.md) — Sample-data generator usage and options.
-- [`docs/RUN_TESTS.md`](docs/RUN_TESTS.md) — How to run the backend test suite.
-- [`docs/HELPER_SCRIPTS.md`](docs/HELPER_SCRIPTS.md) — Details about helper scripts for starting backend/frontend and usage examples.
-- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — Troubleshooting tips and common fixes.
+- [`docs/GENERATE_SAMPLE_DATA.md`](./GENERATE_SAMPLE_DATA.md) — Sample-data generator usage and options.
+- [`docs/RUN_TESTS.md`](./RUN_TESTS.md) — How to run the backend test suite.
+- [`docs/HELPER_SCRIPTS.md`](./HELPER_SCRIPTS.md) — Details about helper scripts for starting backend/frontend and usage examples.
+- [`docs/TROUBLESHOOTING.md`](./TROUBLESHOOTING.md) — Troubleshooting tips and common fixes.
 
 Adjust paths and commands to your local environment as needed.
 source .venv/bin/activate
